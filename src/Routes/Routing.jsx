@@ -7,9 +7,10 @@ import Signup from "../pages/Signup";
 import Websites from "../pages/publisher/websites/Websites";
 import WebsiteDetails from "../pages/publisher/websites/WebsiteDetails";
 import Sales from "../pages/publisher/sales/Sales";
+// import ReceivedMyOwnArticle from "../pages/publisher/sales/ReceivedMyOwnArticle";
 import Wallet from "../pages/publisher/wallet/Wallet";
 import Contact from "../pages/publisher/contact/Contact";
-import Home from "../pages/publisher/Home/Home";
+import Home from "../pages/publisher/home/Home";
 import ConfirmOnship from "../pages/publisher/AddWebsite/confirmOS/ConfirmOnship";
 import DescriptionPricePage from "../pages/publisher/AddWebsite/descriptionPricePage/DescriptionPricePage";
 import EarnSuccessPage from "../pages/publisher/AddWebsite/earnSuccessPage/EarnSuccessPage";
@@ -17,8 +18,12 @@ import Addwebsite from "../pages/publisher/AddWebsite/Addwebsite";
 import VerificationSuccess from "../pages/publisher/AddWebsite/confirmOS/VerificationSuccess";
 import VerificationError from "../pages/publisher/AddWebsite/confirmOS/VerificationError";
 import Profile from "../pages/publisher/Profile";
+// import ChooseOwnArticle from "../pages/publisher/ChooseOwnArticle";
 import ChatPage from "../pages/ChatPage";
 import Messages from "../pages/publisher/Messages";
+import ChooseMyOwnArticle from "../pages/advertiser/components/ChooseMyOwnArticle";
+import PublisherChooseOwnArticle from "../pages/publisher/sales/Article";
+import DepositPage from "../pages/advertiser/components/DepositPage"; // Add this import
 
 // Admin Dashboard
 import AdminDashboard from "../pages/admin/AdminDashboard";
@@ -125,12 +130,16 @@ const Routing = () => {
           <Route path="website-details" element={<WebsiteDetails />} />
           <Route path="addweb" element={<Addwebsite />} />
           <Route path="sales" element={<Sales />} />
+          {/* Re-added the article route as a separate page */}
+          <Route path="sales/article" element={<PublisherChooseOwnArticle />} />
+          {/* <Route path="my-own-article" element={<ReceivedMyOwnArticle />} /> */}
           <Route path="wallet" element={<Wallet />} />
           <Route path="contact" element={<Contact />} />
           <Route path="confirmOwnership" element={<ConfirmOnship />} />
-          <Route path="DescriptionPrice" element={<DescriptionPricePage />} />
+          <Route path="descriptionprice" element={<DescriptionPricePage />} />
           <Route path="earn" element={<EarnSuccessPage />} />
           <Route path="profile" element={<Profile />} />
+          {/* <Route path="choose-own-article" element={<ChooseOwnArticle />} /> */}
           {/* Update messages route to handle chatId parameter */}
           <Route path="messages" element={<Messages />} />
           <Route path="messages/:chatId" element={<Messages />} />
@@ -147,6 +156,8 @@ const Routing = () => {
           {/* Add chat routes for advertisers */}
           <Route path="chat" element={<ChatPage />} />
           <Route path="chat/:chatId" element={<ChatPage />} />
+          <Route path="write-own-article/:itemId" element={<ChooseMyOwnArticle />} />
+          <Route path="deposit" element={<DepositPage />} /> {/* Add this route */}
         </Route>
 
         {/* Admin Routes - Now Public */}

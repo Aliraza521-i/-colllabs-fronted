@@ -247,13 +247,23 @@ export const ChatProvider = ({ children }) => {
     socketInstance.on('new_message', (data) => {
       const { chatId, message } = data;
       
+      // Ensure message has required fields
+      const messageWithDefaults = {
+        _id: message._id || Date.now().toString(),
+        senderId: message.senderId || message.sender || '',
+        senderName: message.senderName || 'Unknown User',
+        content: message.content || '',
+        createdAt: message.createdAt || new Date(),
+        ...message
+      };
+      
       setMessages(prev => ({
         ...prev,
-        [chatId]: [...(prev[chatId] || []), message] // Append new message to the end
+        [chatId]: [...(prev[chatId] || []), messageWithDefaults]
       }));
 
       // Update unread count if not in active chat
-      if (activeChat !== chatId && message.senderId !== user?._id) {
+      if (activeChat !== chatId && messageWithDefaults.senderId !== user?._id) {
         setUnreadCounts(prev => ({
           ...prev,
           [chatId]: (prev[chatId] || 0) + 1
@@ -263,7 +273,7 @@ export const ChatProvider = ({ children }) => {
       // Update chat last message
       setChats(prev => prev.map(chat => 
         chat._id === chatId 
-          ? { ...chat, lastMessage: message, lastActivity: new Date() }
+          ? { ...chat, lastMessage: messageWithDefaults, lastActivity: new Date() }
           : chat
       ));
     });
@@ -271,9 +281,20 @@ export const ChatProvider = ({ children }) => {
     // Chat history received
     socketInstance.on('chat_history', (data) => {
       const { chatId, messages: chatMessages } = data;
+      
+      // Ensure all messages have required fields
+      const messagesWithDefaults = chatMessages.map(msg => ({
+        _id: msg._id || Date.now().toString(),
+        senderId: msg.senderId || msg.sender || '',
+        senderName: msg.senderName || 'Unknown User',
+        content: msg.content || '',
+        createdAt: msg.createdAt || new Date(),
+        ...msg
+      }));
+      
       setMessages(prev => ({
         ...prev,
-        [chatId]: chatMessages // These are already in correct order (oldest first)
+        [chatId]: messagesWithDefaults
       }));
     });
 

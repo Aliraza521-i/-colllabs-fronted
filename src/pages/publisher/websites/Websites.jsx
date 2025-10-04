@@ -260,7 +260,8 @@ const Websites = () => {
     if (website.status === "approved") {
       return [
         { icon: <CheckCircle size={16} />, text: "Approved", bg: "bg-[#bff747]", disabled: true },
-        { icon: <Edit size={16} />, text: "View Details", bg: "bg-[#bff747]", action: "view" },
+        { icon: <Edit size={16} />, text: "Edit", bg: "bg-[#bff747]", action: "edit" },
+        { icon: <Pause size={16} />, text: "Pause", bg: "bg-[#bff747]", action: "pause" },
         { icon: <Trash2 size={16} />, text: "Delete", bg: "bg-red-500", action: "delete" }
       ];
     }
@@ -279,6 +280,14 @@ const Websites = () => {
     if (website.status === "draft") {
       return [
         { icon: <CheckCircle size={16} />, text: "Verification", bg: "bg-[#bff747]", action: "complete" },
+        { icon: <Trash2 size={16} />, text: "Delete", bg: "bg-red-500", action: "delete" }
+      ];
+    }
+    
+    // For verified websites that need to go to moderation
+    if (website.verificationStatus === "verified" && website.status !== "submitted" && website.status !== "approved") {
+      return [
+        { icon: <Clock size={16} />, text: "For Moderation", bg: "bg-[#bff747]", action: "moderate" },
         { icon: <Trash2 size={16} />, text: "Delete", bg: "bg-red-500", action: "delete" }
       ];
     }
@@ -528,7 +537,10 @@ const Websites = () => {
       
       <div className="grid grid-cols-2 gap-3 mb-4">
         <div className="text-sm">
-          <span className="text-gray-400">Category:</span> {website.category}
+          <span className="text-gray-400">Category:</span> 
+          {website.allCategories && website.allCategories.length > 0 
+            ? website.allCategories.join(', ') 
+            : (website.category || "General")}
         </div>
         <div className="text-sm">
           <span className="text-gray-400">Language:</span> {website.mainLanguage}
@@ -605,6 +617,28 @@ const Websites = () => {
                 case 'pause':
                   // Handle pause action
                   console.log('Pause website:', website._id);
+                  break;
+                case 'moderate':
+                  // Navigate to description and price page for moderation
+                  // First update the website status to "submitted" (For Moderation)
+                  // Then navigate to the description price page
+                  navigate('/publisher/descriptionprice', {
+                    state: {
+                      websiteId: website._id,
+                      website: website,
+                      forModeration: true
+                    }
+                  });
+                  break;
+                case 'edit':
+                  // Navigate to description and price page for editing an approved website
+                  navigate('/publisher/descriptionprice', {
+                    state: {
+                      websiteId: website._id,
+                      website: website,
+                      editMode: true
+                    }
+                  });
                   break;
                 default:
                   console.log('Unknown action:', action.action);
@@ -998,6 +1032,26 @@ const Websites = () => {
                         case 'pause':
                           // Handle pause action
                           console.log('Pause website:', website._id);
+                          break;
+                        case 'moderate':
+                          // Navigate to description and price page for moderation
+                          navigate('/publisher/descriptionprice', {
+                            state: {
+                              websiteId: website._id,
+                              website: website,
+                              forModeration: true
+                            }
+                          });
+                          break;
+                        case 'edit':
+                          // Navigate to description and price page for editing an approved website
+                          navigate('/publisher/descriptionprice', {
+                            state: {
+                              websiteId: website._id,
+                              website: website,
+                              editMode: true
+                            }
+                          });
                           break;
                         default:
                           console.log('Unknown action:', action.action);

@@ -3,50 +3,30 @@ import {
   Bars3Icon,
   BellIcon,
   UserCircleIcon,
-  MagnifyingGlassIcon,
   ChevronDownIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   PlusIcon,
-  CurrencyDollarIcon
+  CurrencyDollarIcon,
+  ShoppingBagIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useCart } from '../../../contexts/CartContext';
 
 const AdvertiserHeader = ({ setSidebarOpen, user, walletBalance, onWalletUpdate }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showWalletMenu, setShowWalletMenu] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const { logout } = useAuth();
+  const { cart } = useCart();
   const navigate = useNavigate();
   
   const userMenuRef = useRef(null);
   const walletMenuRef = useRef(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
-        setShowUserMenu(false);
-      }
-      if (walletMenuRef.current && !walletMenuRef.current.contains(event.target)) {
-        setShowWalletMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const handleLogout = async () => {
     await logout();
     navigate('/login');
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/advertiser/browse?search=${encodeURIComponent(searchQuery)}`);
-    }
   };
 
   const formatBalance = (balance) => {
@@ -62,6 +42,9 @@ const AdvertiserHeader = ({ setSidebarOpen, user, walletBalance, onWalletUpdate 
     return 'text-[#bff747]';
   };
 
+  // Safely get cart item count
+  const cartItemCount = cart && cart.totalItems ? cart.totalItems : 0;
+
   return (
     <div className="relative z-10 flex-shrink-0 flex h-16 bg-[#0c0c0c] shadow border-b border-[#bff747]/30">
       {/* Mobile menu button */}
@@ -72,35 +55,25 @@ const AdvertiserHeader = ({ setSidebarOpen, user, walletBalance, onWalletUpdate 
         <Bars3Icon className="h-6 w-6" />
       </button>
 
-      {/* Search bar and actions */}
+      {/* Header content without search bar */}
       <div className="flex-1 px-4 flex justify-between items-center">
-        {/* Search bar */}
-        <div className="flex-1 max-w-lg">
-          <form onSubmit={handleSearch}>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                className="block w-full pl-10 pr-3 py-2 border border-[#bff747]/30 rounded-md leading-5 bg-[#1a1a1a] placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-[#bff747] focus:border-[#bff747] sm:text-sm text-white"
-                placeholder="Search websites by niche, DA, price..."
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </form>
-        </div>
+        {/* Left side - empty space where search bar was */}
+        <div className="flex-1"></div>
 
         {/* Right side - Quick actions and User menu */}
         <div className="ml-4 flex items-center md:ml-6 space-x-4">
-          {/* Quick Order Button */}
+          {/* Shopping Cart */}
           <button
-            onClick={() => navigate('/advertiser/browse')}
-            className="hidden md:inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-[#0c0c0c] bg-[#bff747] hover:bg-[#a8e035] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#bff747]"
+            className="relative p-2 text-[#bff747] hover:text-[#a8e035] focus:outline-none focus:ring-2 focus:ring-[#bff747] focus:ring-offset-2 rounded-full"
+            onClick={() => navigate('/advertiser/cart')}
           >
-            <PlusIcon className="h-4 w-4 mr-2" />
-            New Order
+            <ShoppingBagIcon className="h-6 w-6" />
+            {/* Cart item count badge - dynamic */}
+            {cartItemCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 bg-[#bff747] text-[#0c0c0c] text-xs rounded-full flex items-center justify-center">
+                {cartItemCount}
+              </span>
+            )}
           </button>
 
           {/* Wallet Balance */}

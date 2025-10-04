@@ -267,7 +267,13 @@ const WebsiteDetails = () => {
                   </p>
                   <div className="flex items-center gap-3 text-gray-300">
                     <Tag className="w-4 h-4 text-[#bff747]" />
-                    <h3 className="text-lg font-normal">Category: <span className="text-sm text-gray-400">{website.category || 'Not specified'}</span></h3>
+                    <h3 className="text-lg font-normal">Category: 
+                      <span className="text-sm text-gray-400">
+                        {website.allCategories && website.allCategories.length > 0 
+                          ? website.allCategories.join(', ') 
+                          : (website.category || 'Not specified')}
+                      </span>
+                    </h3>
                   </div>
                 </div>
 
@@ -313,6 +319,11 @@ const WebsiteDetails = () => {
                       Languages: {website.additionalLanguages.join(', ')}
                     </div>
                   )}
+                  {website.keywords && website.keywords.length > 0 && (
+                    <div className="mt-2 text-xs text-gray-500">
+                      Keywords: {website.keywords.join(', ')}
+                    </div>
+                  )}
                 </div>
 
                 <div className="bg-[#2a2a2a] rounded-lg border border-[#333] p-5">
@@ -334,6 +345,23 @@ const WebsiteDetails = () => {
                   </div>
                   <div className="text-xs text-gray-300">
                     Sensitive Content Extra Charge: ${website.sensitiveContentExtraCharge || '0'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Publishing Sections and Advertising Requirements */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-5">
+                <div className="bg-[#2a2a2a] rounded-lg border border-[#333] p-5">
+                  <div className="text-sm text-[#bff747] mb-2 font-medium">Publishing Sections</div>
+                  <div className="text-gray-300 text-sm">
+                    {website.publishingSections || 'Not specified'}
+                  </div>
+                </div>
+                
+                <div className="bg-[#2a2a2a] rounded-lg border border-[#333] p-5">
+                  <div className="text-sm text-[#bff747] mb-2 font-medium">Advertising Requirements</div>
+                  <div className="text-gray-300 text-sm">
+                    {website.advertisingRequirements || 'Not specified'}
                   </div>
                 </div>
               </div>

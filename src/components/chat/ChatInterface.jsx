@@ -198,6 +198,11 @@ const ChatInterface = ({ chatId, chatType = 'order', onClose }) => {
         setIsAtBottom(checkIfAtBottom());
       }, 100);
     }
+    
+    // Always scroll to bottom if we have messages and it's the initial load
+    if (wasInitialLoad && sortedMessages.length > 0) {
+      scrollToBottom();
+    }
   }, [sortedMessages, scrollToBottom, isAtBottom, checkIfAtBottom]);
 
   // Add scroll listener to messages container
@@ -418,10 +423,16 @@ const ChatInterface = ({ chatId, chatType = 'order', onClose }) => {
               
                 return (
                   <div
-                    key={msg._id}
+                    key={msg._id || index} // Fallback to index if _id is missing
                     className={`flex ${justifyContent}`}
                   >
                     <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl`}>
+                      
+                      {showSenderName && (
+                        <div className={`text-xs mb-1 ${isOwnMessage ? 'text-[#0c0c0c]' : 'text-gray-400'}`}>
+                          {getParticipantName(msg.senderId)}
+                        </div>
+                      )}
                       
                       <div className={`rounded-lg px-4 py-2 ${isOwnMessage ? 'bg-[#bff747] text-[#0c0c0c]' : 'bg-[#1a1a1a] text-gray-200 border border-[#bff747]/30'}`}>
                         {msg.replyTo && (
@@ -438,7 +449,7 @@ const ChatInterface = ({ chatId, chatType = 'order', onClose }) => {
                             </span>
                           </div>
                         )}
-                        <p className="text-sm">{msg.content}</p>
+                        <p className="text-sm">{msg.content || 'No content'}</p>
                         
                         {msg.attachments && msg.attachments.length > 0 && (
                           <div className="mt-2 space-y-2">
@@ -446,8 +457,8 @@ const ChatInterface = ({ chatId, chatType = 'order', onClose }) => {
                               <div key={idx} className={`flex items-center space-x-2 text-xs p-2 rounded ${isOwnMessage ? 'bg-[#a8e035]' : 'bg-[#2a2a2a]'}`}>
                                 <PaperClipIcon className="h-4 w-4 flex-shrink-0" />
                                 <div className="flex-1 min-w-0">
-                                  <p className="truncate">{attachment.filename}</p>
-                                  <p className="text-xs opacity-75">{formatFileSize(attachment.fileSize)}</p>
+                                  <p className="truncate">{attachment.filename || attachment.fileName || 'Attachment'}</p>
+                                  <p className="text-xs opacity-75">{formatFileSize(attachment.fileSize || 0)}</p>
                                 </div>
                               </div>
                             ))}
@@ -455,7 +466,7 @@ const ChatInterface = ({ chatId, chatType = 'order', onClose }) => {
                         )}
                         
                         <div className={`text-xs mt-1 flex items-center justify-end ${isOwnMessage ? 'text-[#0c0c0c]' : 'text-gray-400'}`}>
-                          <span>{formatMessageTime(msg.createdAt)}</span>
+                          <span>{msg.createdAt ? formatMessageTime(msg.createdAt) : 'Just now'}</span>
                           {isOwnMessage && (
                             <span className="ml-1">{getMessageStatusIcon(msg)}</span>
                           )}
@@ -465,6 +476,7 @@ const ChatInterface = ({ chatId, chatType = 'order', onClose }) => {
                   </div>
                 );
               })}
+
               <div ref={messagesEndRef} />
             </div>
           )}

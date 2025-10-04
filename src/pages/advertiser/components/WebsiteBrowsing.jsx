@@ -20,9 +20,11 @@ import {
 import { HeartIcon as HeartSolidIcon } from '@heroicons/react/24/solid';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { advertiserAPI } from '../../../services/api';
+import { useCart } from '../../../contexts/CartContext';
 
 const WebsiteBrowsing = () => {
   const navigate = useNavigate();
+  const { addToCart } = useCart();
   const [searchParams, setSearchParams] = useSearchParams();
   
   const [websites, setWebsites] = useState([]);
@@ -44,6 +46,36 @@ const WebsiteBrowsing = () => {
     category: searchParams.get('category') || 'all',
     minDA: searchParams.get('minDA') || '',
     maxDA: searchParams.get('maxDA') || '',
+    minDR: searchParams.get('minDR') || '',
+    maxDR: searchParams.get('maxDR') || '',
+    minPA: searchParams.get('minPA') || '',
+    maxPA: searchParams.get('maxPA') || '',
+    minSS: searchParams.get('minSS') || '',
+    maxSS: searchParams.get('maxSS') || '',
+    minAS: searchParams.get('minAS') || '',
+    maxAS: searchParams.get('maxAS') || '',
+    minTF: searchParams.get('minTF') || '',
+    maxTF: searchParams.get('maxTF') || '',
+    minCF: searchParams.get('minCF') || '',
+    maxCF: searchParams.get('maxCF') || '',
+    minUR: searchParams.get('minUR') || '',
+    maxUR: searchParams.get('maxUR') || '',
+    minDomainAge: searchParams.get('minDomainAge') || '',
+    maxDomainAge: searchParams.get('maxDomainAge') || '',
+    minAhrefsTraffic: searchParams.get('minAhrefsTraffic') || '',
+    maxAhrefsTraffic: searchParams.get('maxAhrefsTraffic') || '',
+    minSemrushTraffic: searchParams.get('minSemrushTraffic') || '',
+    maxSemrushTraffic: searchParams.get('maxSemrushTraffic') || '',
+    minMonthlyTraffic: searchParams.get('minMonthlyTraffic') || '',
+    maxMonthlyTraffic: searchParams.get('maxMonthlyTraffic') || '',
+    minAhrefsKeywords: searchParams.get('minAhrefsKeywords') || '',
+    maxAhrefsKeywords: searchParams.get('maxAhrefsKeywords') || '',
+    minSemrushKeywords: searchParams.get('minSemrushKeywords') || '',
+    maxSemrushKeywords: searchParams.get('maxSemrushKeywords') || '',
+    minAhrefsReferringDomains: searchParams.get('minAhrefsReferringDomains') || '',
+    maxAhrefsReferringDomains: searchParams.get('maxAhrefsReferringDomains') || '',
+    minSemrushReferringDomains: searchParams.get('minSemrushReferringDomains') || '',
+    maxSemrushReferringDomains: searchParams.get('maxSemrushReferringDomains') || '',
     minPrice: searchParams.get('minPrice') || '',
     maxPrice: searchParams.get('maxPrice') || '',
     country: searchParams.get('country') || 'all',
@@ -51,16 +83,18 @@ const WebsiteBrowsing = () => {
     linkType: searchParams.get('linkType') || 'all',
     sortBy: searchParams.get('sortBy') || 'relevance'
   });
-  
+
+  // New state to track applied filters
+  const [appliedFilters, setAppliedFilters] = useState({ ...filters });
   const [showFilters, setShowFilters] = useState(false);
-  const [viewMode, setViewMode] = useState('grid'); // grid or list
+  // Removed viewMode state since we're only using list view
 
   const websitesPerPage = 12;
 
   useEffect(() => {
     fetchWebsites();
     fetchFavorites();
-  }, [currentPage, filters]);
+  }, [currentPage, appliedFilters]);
 
   const fetchWebsites = async () => {
     try {
@@ -68,7 +102,7 @@ const WebsiteBrowsing = () => {
       const params = {
         page: currentPage,
         limit: websitesPerPage,
-        ...filters
+        ...appliedFilters
       };
 
       // Handle sortBy parameter specifically
@@ -129,15 +163,52 @@ const WebsiteBrowsing = () => {
   };
 
   const handleFilterChange = (key, value) => {
+    // Add validation for SEO metrics
+    if (key.startsWith('min') || key.startsWith('max')) {
+      // Validate SEO metrics ranges (0-100)
+      if (key.includes('DA') || key.includes('DR') || key.includes('PA') || 
+          key.includes('SS') || key.includes('AS') || key.includes('TF') || 
+          key.includes('CF') || key.includes('UR')) {
+        if (value !== '') {
+          const numValue = parseFloat(value);
+          if (numValue < 0) value = '0';
+          if (numValue > 100) value = '100';
+        }
+      }
+      // Validate Domain Age specifically (0-100 years)
+      else if (key.includes('DomainAge')) {
+        if (value !== '') {
+          const numValue = parseFloat(value);
+          if (numValue < 0) value = '0';
+          if (numValue > 100) value = '100';
+        }
+      }
+      // Validate other traffic/keyword metrics (no specific range limit mentioned)
+      else if (key.includes('Ahrefs') || key.includes('Semrush') ||
+               key.includes('Monthly') || key.includes('Keywords') || 
+               key.includes('Referring')) {
+        if (value !== '') {
+          const numValue = parseFloat(value);
+          if (numValue < 0) value = '0';
+        }
+      }
+    }
+    
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
+    // Note: We don't update appliedFilters here, only on search button click
+  };
+
+  // New function to apply filters
+  const applyFilters = () => {
+    setAppliedFilters({ ...filters });
     setCurrentPage(1);
     
     // Update URL params
     const newSearchParams = new URLSearchParams();
-    Object.keys(newFilters).forEach(key => {
-      if (newFilters[key] && newFilters[key] !== 'all') {
-        newSearchParams.set(key, newFilters[key]);
+    Object.keys(filters).forEach(key => {
+      if (filters[key] && filters[key] !== 'all') {
+        newSearchParams.set(key, filters[key]);
       }
     });
     setSearchParams(newSearchParams);
@@ -163,6 +234,78 @@ const WebsiteBrowsing = () => {
       category: 'all',
       minDA: '',
       maxDA: '',
+      minDR: '',
+      maxDR: '',
+      minPA: '',
+      maxPA: '',
+      minSS: '',
+      maxSS: '',
+      minAS: '',
+      maxAS: '',
+      minTF: '',
+      maxTF: '',
+      minCF: '',
+      maxCF: '',
+      minUR: '',
+      maxUR: '',
+      minDomainAge: '',
+      maxDomainAge: '',
+      minAhrefsTraffic: '',
+      maxAhrefsTraffic: '',
+      minSemrushTraffic: '',
+      maxSemrushTraffic: '',
+      minMonthlyTraffic: '',
+      maxMonthlyTraffic: '',
+      minAhrefsKeywords: '',
+      maxAhrefsKeywords: '',
+      minSemrushKeywords: '',
+      maxSemrushKeywords: '',
+      minAhrefsReferringDomains: '',
+      maxAhrefsReferringDomains: '',
+      minSemrushReferringDomains: '',
+      maxSemrushReferringDomains: '',
+      minPrice: '',
+      maxPrice: '',
+      country: 'all',
+      language: 'all',
+      linkType: 'all',
+      sortBy: 'relevance'
+    });
+    setAppliedFilters({
+      search: '',
+      category: 'all',
+      minDA: '',
+      maxDA: '',
+      minDR: '',
+      maxDR: '',
+      minPA: '',
+      maxPA: '',
+      minSS: '',
+      maxSS: '',
+      minAS: '',
+      maxAS: '',
+      minTF: '',
+      maxTF: '',
+      minCF: '',
+      maxCF: '',
+      minUR: '',
+      maxUR: '',
+      minDomainAge: '',
+      maxDomainAge: '',
+      minAhrefsTraffic: '',
+      maxAhrefsTraffic: '',
+      minSemrushTraffic: '',
+      maxSemrushTraffic: '',
+      minMonthlyTraffic: '',
+      maxMonthlyTraffic: '',
+      minAhrefsKeywords: '',
+      maxAhrefsKeywords: '',
+      minSemrushKeywords: '',
+      maxSemrushKeywords: '',
+      minAhrefsReferringDomains: '',
+      maxAhrefsReferringDomains: '',
+      minSemrushReferringDomains: '',
+      maxSemrushReferringDomains: '',
       minPrice: '',
       maxPrice: '',
       country: 'all',
@@ -210,7 +353,20 @@ const WebsiteBrowsing = () => {
     return 'text-red-400';
   };
 
-  const categories = ['all', ...filterOptions.categories];
+  // Process categories to handle comma-separated values
+  const processedCategories = filterOptions.categories.reduce((acc, category) => {
+    if (category && category.includes(',')) {
+      // Split comma-separated categories
+      const splitCategories = category.split(',').map(cat => cat.trim());
+      return [...acc, ...splitCategories];
+    }
+    return [...acc, category];
+  }, []).filter(Boolean);
+  
+  // Remove duplicates
+  const uniqueCategories = [...new Set(processedCategories)];
+  
+  const categories = ['all', ...uniqueCategories.sort()];
   const countries = ['all', ...filterOptions.countries];
   const languages = ['all', ...filterOptions.languages];
 
@@ -231,12 +387,7 @@ const WebsiteBrowsing = () => {
           <p className="text-gray-400">Find the perfect websites for your guest posts</p>
         </div>
         <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-            className="px-3 py-2 border border-[#bff747]/30 rounded-md text-sm font-medium text-[#bff747] hover:bg-[#2a2a2a]"
-          >
-            {viewMode === 'grid' ? 'List View' : 'Grid View'}
-          </button>
+          {/* Removed view mode toggle button since we only use list view */}
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="flex items-center px-4 py-2 bg-[#bff747] text-[#0c0c0c] rounded-md hover:bg-[#a8e035]"
@@ -262,19 +413,27 @@ const WebsiteBrowsing = () => {
               />
             </div>
           </div>
-          <div className="w-48">
-            <select
-              value={filters.sortBy}
-              onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-              className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747]"
+          <div className="flex space-x-2">
+            <button
+              onClick={applyFilters}
+              className="px-4 py-2 bg-[#bff747] text-[#0c0c0c] rounded-md hover:bg-[#a8e035] font-medium"
             >
-              <option value="relevance" className="bg-[#0c0c0c]">Most Relevant</option>
-              <option value="metrics.domainAuthority" className="bg-[#0c0c0c]">Highest DA</option>
-              <option value="price_asc" className="bg-[#0c0c0c]">Lowest Price</option>
-              <option value="price_desc" className="bg-[#0c0c0c]">Highest Price</option>
-              <option value="response_time" className="bg-[#0c0c0c]">Fastest Response</option>
-              <option value="rating" className="bg-[#0c0c0c]">Best Rated</option>
-            </select>
+              Search
+            </button>
+            <div className="w-48">
+              <select
+                value={filters.sortBy}
+                onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747]"
+              >
+                <option value="relevance" className="bg-[#0c0c0c]">Most Relevant</option>
+                <option value="metrics.domainAuthority" className="bg-[#0c0c0c]">Highest DA</option>
+                <option value="price_asc" className="bg-[#0c0c0c]">Lowest Price</option>
+                <option value="price_desc" className="bg-[#0c0c0c]">Highest Price</option>
+                <option value="response_time" className="bg-[#0c0c0c]">Fastest Response</option>
+                <option value="rating" className="bg-[#0c0c0c]">Best Rated</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -306,6 +465,8 @@ const WebsiteBrowsing = () => {
                 <input
                   type="number"
                   placeholder="Min"
+                  min="0"
+                  max="100"
                   className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
                   value={filters.minDA}
                   onChange={(e) => handleFilterChange('minDA', e.target.value)}
@@ -313,9 +474,358 @@ const WebsiteBrowsing = () => {
                 <input
                   type="number"
                   placeholder="Max"
+                  min="0"
+                  max="100"
                   className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
                   value={filters.maxDA}
                   onChange={(e) => handleFilterChange('maxDA', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* DR Range */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Domain Rating</label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  min="0"
+                  max="100"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.minDR}
+                  onChange={(e) => handleFilterChange('minDR', e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  min="0"
+                  max="100"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.maxDR}
+                  onChange={(e) => handleFilterChange('maxDR', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* PA Range */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Page Authority</label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  min="0"
+                  max="100"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.minPA}
+                  onChange={(e) => handleFilterChange('minPA', e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  min="0"
+                  max="100"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.maxPA}
+                  onChange={(e) => handleFilterChange('maxPA', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* SS Range */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Spam Score</label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  min="0"
+                  max="100"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.minSS}
+                  onChange={(e) => handleFilterChange('minSS', e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  min="0"
+                  max="100"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.maxSS}
+                  onChange={(e) => handleFilterChange('maxSS', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* AS Range */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Alexa Score</label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  min="0"
+                  max="100"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.minAS}
+                  onChange={(e) => handleFilterChange('minAS', e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  min="0"
+                  max="100"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.maxAS}
+                  onChange={(e) => handleFilterChange('maxAS', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* TF Range */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Trust Flow</label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  min="0"
+                  max="100"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.minTF}
+                  onChange={(e) => handleFilterChange('minTF', e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  min="0"
+                  max="100"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.maxTF}
+                  onChange={(e) => handleFilterChange('maxTF', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* CF Range */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Citation Flow</label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  min="0"
+                  max="100"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.minCF}
+                  onChange={(e) => handleFilterChange('minCF', e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  min="0"
+                  max="100"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.maxCF}
+                  onChange={(e) => handleFilterChange('maxCF', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* UR Range */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">URL Rating</label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  min="0"
+                  max="100"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.minUR}
+                  onChange={(e) => handleFilterChange('minUR', e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  min="0"
+                  max="100"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.maxUR}
+                  onChange={(e) => handleFilterChange('maxUR', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Domain Age Range */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Domain Age</label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  min="0"
+                  max="100"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.minDomainAge}
+                  onChange={(e) => handleFilterChange('minDomainAge', e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  min="0"
+                  max="100"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.maxDomainAge}
+                  onChange={(e) => handleFilterChange('maxDomainAge', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Ahrefs Traffic Range */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Ahrefs Traffic</label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.minAhrefsTraffic}
+                  onChange={(e) => handleFilterChange('minAhrefsTraffic', e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.maxAhrefsTraffic}
+                  onChange={(e) => handleFilterChange('maxAhrefsTraffic', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Semrush Traffic Range */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Semrush Traffic</label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.minSemrushTraffic}
+                  onChange={(e) => handleFilterChange('minSemrushTraffic', e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.maxSemrushTraffic}
+                  onChange={(e) => handleFilterChange('maxSemrushTraffic', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Monthly Traffic Range */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Monthly Traffic</label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.minMonthlyTraffic}
+                  onChange={(e) => handleFilterChange('minMonthlyTraffic', e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.maxMonthlyTraffic}
+                  onChange={(e) => handleFilterChange('maxMonthlyTraffic', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Ahrefs Keywords Range */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Ahrefs Keywords</label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.minAhrefsKeywords}
+                  onChange={(e) => handleFilterChange('minAhrefsKeywords', e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.maxAhrefsKeywords}
+                  onChange={(e) => handleFilterChange('maxAhrefsKeywords', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Semrush Keywords Range */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Semrush Keywords</label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.minSemrushKeywords}
+                  onChange={(e) => handleFilterChange('minSemrushKeywords', e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.maxSemrushKeywords}
+                  onChange={(e) => handleFilterChange('maxSemrushKeywords', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Ahrefs Referring Domains Range */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Ahrefs Referring Domains</label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.minAhrefsReferringDomains}
+                  onChange={(e) => handleFilterChange('minAhrefsReferringDomains', e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.maxAhrefsReferringDomains}
+                  onChange={(e) => handleFilterChange('maxAhrefsReferringDomains', e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Semrush Referring Domains Range */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Semrush Referring Domains</label>
+              <div className="flex space-x-2">
+                <input
+                  type="number"
+                  placeholder="Min"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.minSemrushReferringDomains}
+                  onChange={(e) => handleFilterChange('minSemrushReferringDomains', e.target.value)}
+                />
+                <input
+                  type="number"
+                  placeholder="Max"
+                  className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
+                  value={filters.maxSemrushReferringDomains}
+                  onChange={(e) => handleFilterChange('maxSemrushReferringDomains', e.target.value)}
                 />
               </div>
             </div>
@@ -357,6 +867,22 @@ const WebsiteBrowsing = () => {
               </select>
             </div>
 
+            {/* Language */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1">Language</label>
+              <select
+                value={filters.language}
+                onChange={(e) => handleFilterChange('language', e.target.value)}
+                className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747]"
+              >
+                {languages.map(lang => (
+                  <option key={lang} value={lang} className="bg-[#0c0c0c]">
+                    {lang === 'all' ? 'All Languages' : lang}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
             {/* Link Type */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-1">Link Type</label>
@@ -374,12 +900,20 @@ const WebsiteBrowsing = () => {
           </div>
 
           <div className="flex justify-between items-center mt-4">
-            <button
-              onClick={clearFilters}
-              className="text-sm text-gray-400 hover:text-[#bff747]"
-            >
-              Clear All Filters
-            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={clearFilters}
+                className="text-sm text-gray-400 hover:text-[#bff747]"
+              >
+                Clear All Filters
+              </button>
+              <button
+                onClick={applyFilters}
+                className="px-4 py-1 bg-[#bff747] text-[#0c0c0c] rounded-md hover:bg-[#a8e035] text-sm font-medium"
+              >
+                Apply Filters
+              </button>
+            </div>
             <div className="text-sm text-gray-400">
               {websites.length} websites found
             </div>
@@ -387,11 +921,11 @@ const WebsiteBrowsing = () => {
         </div>
       )}
 
-      {/* Results */}
-      {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Results - Only showing list view */}
+      <div className="bg-[#1a1a1a] rounded-lg shadow overflow-hidden border border-[#bff747]/30">
+        <div className="divide-y divide-[#bff747]/30">
           {websites.map((website) => (
-            <WebsiteCard
+            <WebsiteListItem
               key={website._id}
               website={website}
               isFavorite={favorites.includes(website._id)}
@@ -402,23 +936,7 @@ const WebsiteBrowsing = () => {
             />
           ))}
         </div>
-      ) : (
-        <div className="bg-[#1a1a1a] rounded-lg shadow overflow-hidden border border-[#bff747]/30">
-          <div className="divide-y divide-[#bff747]/30">
-            {websites.map((website) => (
-              <WebsiteListItem
-                key={website._id}
-                website={website}
-                isFavorite={favorites.includes(website._id)}
-                onToggleFavorite={() => toggleFavorite(website._id)}
-                onViewDetails={() => navigate(`/advertiser/browse/${website._id}`)}
-                onPlaceOrder={() => navigate(`/advertiser/order/${website._id}`)}
-                qualityScore={getQualityScore(website)}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      </div>
 
       {/* Empty State */}
       {websites.length === 0 && !loading && (
@@ -506,126 +1024,11 @@ const WebsiteBrowsing = () => {
   );
 };
 
-// Website Card Component
-const WebsiteCard = ({ website, isFavorite, onToggleFavorite, onViewDetails, onPlaceOrder, qualityScore }) => {
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(price);
-  };
-
-  const getScoreColor = (score) => {
-    if (score >= 80) return 'text-green-400';
-    if (score >= 60) return 'text-yellow-400';
-    return 'text-red-400';
-  };
-
-  return (
-    <div className="bg-[#1a1a1a] rounded-lg shadow-sm border border-[#bff747]/30 overflow-hidden hover:shadow-md transition-shadow">
-      
-      {/* Header */}
-      <div className="p-4 border-b border-[#bff747]/30">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <GlobeAltIcon className="h-5 w-5 text-[#bff747]" />
-            <h3 className="text-lg font-medium text-[#bff747] truncate">
-              {website.domain}
-            </h3>
-          </div>
-          <button
-            onClick={onToggleFavorite}
-            className="p-1 rounded-full hover:bg-[#2a2a2a]"
-          >
-            {isFavorite ? (
-              <HeartSolidIcon className="h-5 w-5 text-red-400" />
-            ) : (
-              <HeartIcon className="h-5 w-5 text-gray-400" />
-            )}
-          </button>
-        </div>
-        
-        <div className="mt-2">
-          <p className="text-sm text-gray-300 line-clamp-2">
-            {website.siteDescription}
-          </p>
-        </div>
-      </div>
-
-      {/* Metrics */}
-      <div className="p-4 space-y-3">
-        <div className="grid grid-cols-3 gap-3">
-          <div className="text-center p-2 bg-[#2a2a2a] rounded border border-[#bff747]/20">
-            <ChartBarIcon className="h-4 w-4 text-[#bff747] mx-auto mb-1" />
-            <p className="text-xs text-gray-400">DA</p>
-            <p className="text-sm font-semibold text-[#bff747]">{website.metrics?.domainAuthority || website.metrics?.da || 'N/A'}</p>
-          </div>
-          <div className="text-center p-2 bg-[#2a2a2a] rounded border border-[#bff747]/20">
-            <ClockIcon className="h-4 w-4 text-[#bff747] mx-auto mb-1" />
-            <p className="text-xs text-gray-400">Response</p>
-            <p className="text-sm font-semibold text-[#bff747]">{website.avgResponseTime || 48}h</p>
-          </div>
-          <div className="text-center p-2 bg-[#2a2a2a] rounded border border-[#bff747]/20">
-            <StarIcon className="h-4 w-4 text-[#bff747] mx-auto mb-1" />
-            <p className="text-xs text-gray-400">Quality</p>
-            <p className={`text-sm font-semibold ${getScoreColor(qualityScore)}`}>
-              {qualityScore}%
-            </p>
-          </div>
-        </div>
-
-        {/* Details */}
-        <div className="space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-400">Category:</span>
-            <span className="text-xs font-medium capitalize text-[#bff747]">{website.category}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-400">Country:</span>
-            <span className="text-xs font-medium text-[#bff747]">{website.country}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-gray-400">Link Type:</span>
-            <span className="text-xs font-medium capitalize text-[#bff747]">{website.linkType}</span>
-          </div>
-        </div>
-
-        {/* Price */}
-        <div className="pt-2 border-t border-[#bff747]/30">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-lg font-bold text-[#bff747]">
-                {formatPrice(website.publishingPrice)}
-              </p>
-              {website.copywritingPrice && (
-                <p className="text-xs text-gray-400">
-                  +{formatPrice(website.copywritingPrice)} writing
-                </p>
-              )}
-            </div>
-            <div className="flex space-x-2">
-              <button
-                onClick={onViewDetails}
-                className="px-3 py-1 text-sm bg-[#2a2a2a] text-[#bff747] rounded hover:bg-[#3a3a3a] border border-[#bff747]/30"
-              >
-                <EyeIcon className="h-4 w-4" />
-              </button>
-              <button
-                onClick={onPlaceOrder}
-                className="px-3 py-1 text-sm bg-[#bff747] text-[#0c0c0c] rounded hover:bg-[#a8e035]"
-              >
-                Order
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // Website List Item Component
 const WebsiteListItem = ({ website, isFavorite, onToggleFavorite, onViewDetails, onPlaceOrder, qualityScore }) => {
+  const { addToCart } = useCart();
+  
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -639,72 +1042,256 @@ const WebsiteListItem = ({ website, isFavorite, onToggleFavorite, onViewDetails,
     return 'text-red-400';
   };
 
+  // Render 5-star rating component
+  const renderRating = (rating) => {
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+    
+    return (
+      <div className="flex items-center">
+        <div className="flex">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <StarIcon
+              key={star}
+              className={`h-4 w-4 ${
+                star <= fullStars
+                  ? 'text-[#bff747] fill-current'
+                  : hasHalfStar && star === fullStars + 1
+                  ? 'text-[#bff747]'
+                  : 'text-gray-600'
+              }`}
+            />
+          ))}
+        </div>
+        <span className="ml-1 text-sm text-gray-400">
+          {rating ? rating.toFixed(1) : '0.0'}
+        </span>
+      </div>
+    );
+  };
+
+  // Format large numbers with commas
+  const formatNumber = (num) => {
+    return num ? num.toLocaleString() : 'N/A';
+  };
+
+  const handleAddToCart = () => {
+    // Create cart item object with proper fallbacks
+    const cartItem = {
+      id: website._id || Date.now().toString(),
+      websiteId: website._id || Date.now().toString(),
+      websiteName: website.domain || website.url || 'Unknown Website',
+      websiteUrl: website.url || '#',
+      advertisingRequirements: website.advertisingRequirements || 'Not specified',
+      price: website.publishingPrice || 0,
+      category: website.category || website.Category || "General",
+      traffic: website.metrics?.ahrefsTraffic ? `${website.metrics.ahrefsTraffic.toLocaleString()}/month` : 'N/A',
+      image: website.domain ? `https://logo.clearbit.com/${website.domain}` : 'https://placehold.co/100x100?text=No+Image'
+    };
+    
+    // Add to cart
+    addToCart(cartItem);
+    
+    // Show confirmation
+    alert(`${cartItem.websiteName} added to cart!`);
+  };
+
   return (
-    <div className="p-6 hover:bg-[#2a2a2a]">
-      <div className="flex items-center justify-between">
+    <div className="p-4 hover:bg-[#252525] border-b border-[#bff747]/10 last:border-b-0 transition-all">
+      <div className="flex items-start justify-between">
+        {/* Left Side - Website Info */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center space-x-3">
-            <GlobeAltIcon className="h-6 w-6 text-[#bff747]" />
-            <div>
-              <h3 className="text-lg font-medium text-[#bff747]">{website.domain}</h3>
-              <p className="text-sm text-gray-300">{website.siteDescription}</p>
+          <div className="flex items-start space-x-4">
+            <div className="bg-gradient-to-br from-[#bff747]/20 to-[#bff747]/5 p-3 rounded-lg flex-shrink-0">
+              <GlobeAltIcon className="h-6 w-6 text-[#bff747]" />
             </div>
-          </div>
-          
-          <div className="mt-3 flex items-center space-x-6">
-            <div className="flex items-center space-x-1">
-              <ChartBarIcon className="h-4 w-4 text-[#bff747]" />
-              <span className="text-sm text-gray-400">DA: {website.metrics?.domainAuthority || website.metrics?.da || 'N/A'}</span>
+            <div className="flex-1">
+              <div className="flex items-center flex-wrap">
+                <h3 className="text-lg font-bold text-[#bff747]">{website.domain || website.url || 'Unknown Website'}</h3>
+                <span className="ml-2 text-xs text-gray-400">{website.url || ''}</span>
+              </div>
+
+              {/* Added category display below URL - With label and proper splitting */}
+              <div className="mt-2">
+                <span className="text-xs font-medium text-gray-300 mr-2">Categories:</span>
+                <div className="flex flex-wrap gap-1">
+                  {(() => {
+                    // Handle different category formats
+                    let categories = [];
+                    if (website.allCategories && website.allCategories.length > 0) {
+                      categories = website.allCategories;
+                    } else if (website.category) {
+                      // Split comma-separated categories
+                      categories = website.category.includes(',') 
+                        ? website.category.split(',').map(cat => cat.trim())
+                        : [website.category];
+                    } else {
+                      categories = ["General"];
+                    }
+                    
+                    return categories.map((cat, index) => (
+                      <span 
+                        key={index} 
+                        className="text-xs bg-[#bff747]/20 text-[#bff747] px-2 py-0.5 rounded-full capitalize"
+                      >
+                        {cat}
+                      </span>
+                    ));
+                  })()}
+                </div>
+              </div>
+              
+              {/* Language and Country Information */}
+              <div className="flex flex-wrap gap-3 mt-2">
+                {/* Language Display */}
+                <div className="flex items-center">
+                  <span className="text-xs font-medium text-gray-300 mr-1">Language:</span>
+                  {(website.mainLanguage || website.language || website.Language || website.lang || (website.metrics && website.metrics.language) || (website.metrics && website.metrics.Language)) ? (
+                    <span className="text-xs bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded-full border border-blue-700/50">
+                      {website.mainLanguage || website.language || website.Language || website.lang || (website.metrics && website.metrics.language) || (website.metrics && website.metrics.Language)}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-500">Not specified</span>
+                  )}
+                </div>
+                
+                {/* Country Display */}
+                <div className="flex items-center">
+                  <span className="text-xs font-medium text-gray-300 mr-1">Country:</span>
+                  {(website.country || website.Country || website.cntry || (website.metrics && website.metrics.country) || (website.metrics && website.metrics.Country)) ? (
+                    <span className="text-xs bg-green-900/40 text-green-300 px-2 py-0.5 rounded-full border border-green-700/50">
+                      {website.country || website.Country || website.cntry || (website.metrics && website.metrics.country) || (website.metrics && website.metrics.Country)}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-500">Not specified</span>
+                  )}
+                </div>
+              </div>
+              
+              {/* Reorganized website details in requested order */}
+              {website.acceptedSensitiveCategories && website.acceptedSensitiveCategories.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1">
+                  <span className="text-xs font-medium text-gray-300 mr-2">Sensitive Categories:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {website.acceptedSensitiveCategories.slice(0, 3).map((category, index) => (
+                      <span 
+                        key={index} 
+                        className="text-xs bg-gradient-to-r from-red-900/40 to-red-800/40 text-red-300 px-2 py-0.5 rounded-full border border-red-700/50"
+                      >
+                        {category.replace(/_/g, ' ') || category}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Rating and Orders */}
+              <div className="flex items-center mt-3 text-xs text-gray-400">
+                <div className="flex items-center">
+                  {renderRating(website.stats?.rating)}
+                  <span className="mx-2 text-gray-600">•</span>
+                  <div className="flex items-center">
+                    <ShoppingCartIcon className="h-3 w-3 mr-1" />
+                    <span>{website.stats?.completedOrders || 0} orders</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* SEO Metrics Grid - Compact version */}
+              <div className="mt-3 grid grid-cols-4 gap-1">
+                {/* DA Metric */}
+                <div className="text-center p-1.5 bg-[#252525] rounded border border-[#bff747]/10 hover:border-[#bff747]/30 transition-all">
+                  <div className="flex justify-center">
+                    <ChartBarIcon className="h-3 w-3 text-[#bff747]" />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">DA</p>
+                  <p className="text-xs font-bold text-[#bff747] mt-0.5">
+                    {website.metrics?.domainAuthority || website.metrics?.da || 'N/A'}
+                  </p>
+                </div>
+                
+                {/* DR Metric */}
+                <div className="text-center p-1.5 bg-[#252525] rounded border border-[#bff747]/10 hover:border-[#bff747]/30 transition-all">
+                  <div className="flex justify-center">
+                    <ChartBarIcon className="h-3 w-3 text-[#bff747]" />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">DR</p>
+                  <p className="text-xs font-bold text-[#bff747] mt-0.5">
+                    {website.metrics?.dr || 'N/A'}
+                  </p>
+                </div>
+                
+                {/* Ahrefs Traffic */}
+                <div className="text-center p-1.5 bg-[#252525] rounded border border-[#bff747]/10 hover:border-[#bff747]/30 transition-all">
+                  <div className="flex justify-center">
+                    <GlobeAltIcon className="h-3 w-3 text-[#bff747]" />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Ahrefs</p>
+                  <p className="text-xs font-bold text-[#bff747] mt-0.5">
+                    {formatNumber(website.metrics?.ahrefsTraffic)}
+                  </p>
+                </div>
+                
+                {/* SEMrush Traffic */}
+                <div className="text-center p-1.5 bg-[#252525] rounded border border-[#bff747]/10 hover:border-[#bff747]/30 transition-all">
+                  <div className="flex justify-center">
+                    <GlobeAltIcon className="h-3 w-3 text-[#bff747]" />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">SEMrush</p>
+                  <p className="text-xs font-bold text-[#bff747] mt-0.5">
+                    {formatNumber(website.metrics?.semrushTraffic)}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center space-x-1">
-              <ClockIcon className="h-4 w-4 text-[#bff747]" />
-              <span className="text-sm text-gray-400">{website.avgResponseTime || 48}h response</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <StarIcon className="h-4 w-4 text-[#bff747]" />
-              <span className={`text-sm font-medium ${getScoreColor(qualityScore)}`}>
-                {qualityScore}% quality
-              </span>
-            </div>
-            <span className="text-sm text-gray-400 capitalize">{website.category}</span>
-            <span className="text-sm text-gray-400">{website.country}</span>
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
-          <div className="text-right">
-            <p className="text-lg font-bold text-[#bff747]">
-              {formatPrice(website.publishingPrice)}
+        {/* Right Side - Actions and Price */}
+        <div className="flex flex-col items-end space-y-3 ml-4 w-56 flex-shrink-0">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={onToggleFavorite}
+              className="p-1 rounded-full hover:bg-[#3a3a3a] transition-colors"
+            >
+              {isFavorite ? (
+                <HeartSolidIcon className="h-4 w-4 text-red-500" />
+              ) : (
+                <HeartIcon className="h-4 w-4 text-gray-400" />
+              )}
+            </button>
+          </div>
+          
+          <div className="text-right w-full">
+            <p className="text-xl font-bold text-[#bff747]">
+              {formatPrice(website.publishingPrice || 0)}
             </p>
-            {website.copywritingPrice && (
-              <p className="text-sm text-gray-400">
-                +{formatPrice(website.copywritingPrice)} writing
+            {website.copywritingPrice > 0 && (
+              <p className="text-xs text-gray-400 mt-1">
+                +{formatPrice(website.copywritingPrice)} for writing
+              </p>
+            )}
+            {website.sensitiveContentExtraCharge > 0 && (
+              <p className="text-xs text-red-400 mt-1">
+                +{formatPrice(website.sensitiveContentExtraCharge)} for sensitive content
               </p>
             )}
           </div>
           
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={onToggleFavorite}
-              className="p-2 rounded-full hover:bg-[#2a2a2a]"
-            >
-              {isFavorite ? (
-                <HeartSolidIcon className="h-5 w-5 text-red-400" />
-              ) : (
-                <HeartIcon className="h-5 w-5 text-gray-400" />
-              )}
-            </button>
+          <div className="flex flex-col space-y-1 w-full">
             <button
               onClick={onViewDetails}
-              className="px-4 py-2 text-sm bg-[#2a2a2a] text-[#bff747] rounded hover:bg-[#3a3a3a] border border-[#bff747]/30"
+              className="px-3 py-1.5 text-xs bg-[#2a2a2a] text-[#bff747] rounded-md hover:bg-[#3a3a3a] border border-[#bff747]/30 transition-all flex items-center justify-center font-medium"
             >
-              View Details
+              <EyeIcon className="h-3 w-3 mr-1" />
+              <span>View Details</span>
             </button>
             <button
-              onClick={onPlaceOrder}
-              className="px-4 py-2 text-sm bg-[#bff747] text-[#0c0c0c] rounded hover:bg-[#a8e035]"
+              onClick={handleAddToCart}
+              className="px-3 py-1.5 text-xs bg-[#1a1a1a] text-[#bff747] rounded-md hover:bg-[#2a2a2a] border border-[#bff747]/30 transition-all flex items-center justify-center font-medium"
             >
-              Place Order
+              <ShoppingCartIcon className="h-3 w-3 mr-1" />
+              <span>Add to Cart</span>
             </button>
           </div>
         </div>
@@ -714,3 +1301,4 @@ const WebsiteListItem = ({ website, isFavorite, onToggleFavorite, onViewDetails,
 };
 
 export default WebsiteBrowsing;
+

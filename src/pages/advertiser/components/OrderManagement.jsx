@@ -13,7 +13,8 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CalendarIcon,
-  CurrencyDollarIcon
+  CurrencyDollarIcon,
+  ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { advertiserAPI } from '../../../services/api';
@@ -28,12 +29,18 @@ const OrderManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedOrders, setSelectedOrders] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
+  
+  // Parse sortBy and sortOrder from URL params
+  const sortByParam = searchParams.get('sortBy') || 'createdAt';
+  const sortOrderParam = searchParams.get('sortOrder') || 'desc';
   
   const [filters, setFilters] = useState({
     search: searchParams.get('search') || '',
     status: searchParams.get('status') || 'all',
-    dateRange: searchParams.get('dateRange') || '30d',
-    sortBy: searchParams.get('sortBy') || 'created_desc'
+    dateRange: searchParams.get('dateRange') || 'all',
+    sortBy: sortByParam,
+    sortOrder: sortOrderParam
   });
 
   const [showFilters, setShowFilters] = useState(false);
@@ -64,9 +71,9 @@ const OrderManagement = () => {
 
       const response = await advertiserAPI.getOrders(params);
       if (response.data) {
-        setOrders(response.data.orders || []);
-        setTotalPages(response.data.totalPages || 1);
-        setStats(response.data.stats || {});
+        setOrders(response.data.data || []);
+        setTotalPages(response.data.pagination?.pages || 1);
+        // Stats are not returned by this endpoint, so we'll leave it as is
       } else {
         throw new Error('Failed to fetch orders');
       }
@@ -76,7 +83,13 @@ const OrderManagement = () => {
       setOrders([]); // Clear orders on error
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const refreshOrders = async () => {
+    setRefreshing(true);
+    await fetchOrders();
   };
 
   const handleFilterChange = (key, value) => {
@@ -321,12 +334,22 @@ const OrderManagement = () => {
           <h1 className="text-2xl font-bold text-[#bff747]">My Orders</h1>
           <p className="text-gray-400">Track and manage your guest post orders</p>
         </div>
-        <button
-          onClick={() => navigate('/advertiser/browse')}
-          className="px-4 py-2 bg-[#bff747] text-[#0c0c0c] rounded-md hover:bg-[#a8e035]"
-        >
-          Place New Order
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={refreshOrders}
+            disabled={refreshing}
+            className="flex items-center px-3 py-2 bg-[#1a1a1a] border border-[#bff747]/30 text-[#bff747] rounded-md hover:bg-[#2a2a2a] disabled:opacity-50"
+          >
+            <ArrowPathIcon className={`h-4 w-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+          <button
+            onClick={() => navigate('/advertiser/browse')}
+            className="px-4 py-2 bg-[#bff747] text-[#0c0c0c] rounded-md hover:bg-[#a8e035]"
+          >
+            Place New Order
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -434,25 +457,43 @@ const OrderManagement = () => {
               onChange={(e) => handleFilterChange('dateRange', e.target.value)}
               className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747]"
             >
+              <option value="all" className="bg-[#0c0c0c]">All time</option>
               <option value="7d" className="bg-[#0c0c0c]">Last 7 days</option>
               <option value="30d" className="bg-[#0c0c0c]">Last 30 days</option>
               <option value="90d" className="bg-[#0c0c0c]">Last 90 days</option>
-              <option value="all" className="bg-[#0c0c0c]">All time</option>
             </select>
           </div>
 
           {/* Sort */}
           <div>
             <select
-              value={filters.sortBy}
-              onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+              value={`${filters.sortBy}:${filters.sortOrder}`}
+              onChange={(e) => {
+                const [sortBy, sortOrder] = e.target.value.split(':');
+                setFilters(prev => ({
+                  ...prev,
+                  sortBy,
+                  sortOrder
+                }));
+                setCurrentPage(1);
+                
+                // Update URL params
+                const newFilters = { ...filters, sortBy, sortOrder };
+                const newSearchParams = new URLSearchParams();
+                Object.keys(newFilters).forEach(key => {
+                  if (newFilters[key] && newFilters[key] !== 'all') {
+                    newSearchParams.set(key, newFilters[key]);
+                  }
+                });
+                setSearchParams(newSearchParams);
+              }}
               className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747]"
             >
-              <option value="created_desc" className="bg-[#0c0c0c]">Newest First</option>
-              <option value="created_asc" className="bg-[#0c0c0c]">Oldest First</option>
-              <option value="deadline_asc" className="bg-[#0c0c0c]">Deadline (Urgent First)</option>
-              <option value="amount_desc" className="bg-[#0c0c0c]">Highest Amount</option>
-              <option value="amount_asc" className="bg-[#0c0c0c]">Lowest Amount</option>
+              <option value="createdAt:desc" className="bg-[#0c0c0c]">Newest First</option>
+              <option value="createdAt:asc" className="bg-[#0c0c0c]">Oldest First</option>
+              <option value="deadline:asc" className="bg-[#0c0c0c]">Deadline (Urgent First)</option>
+              <option value="totalPrice:desc" className="bg-[#0c0c0c]">Highest Amount</option>
+              <option value="totalPrice:asc" className="bg-[#0c0c0c]">Lowest Amount</option>
             </select>
           </div>
         </div>
@@ -705,14 +746,14 @@ const OrderManagement = () => {
             <p className="mt-1 text-sm text-gray-400">
               {filters.search || filters.status !== 'all' ? 
                 'Try adjusting your search criteria' : 
-                'Get started by placing your first order'
+                'Get started by placing your first order. Browse websites and place orders to see them here.'
               }
             </p>
             <button
               onClick={() => navigate('/advertiser/browse')}
               className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-[#0c0c0c] bg-[#bff747] hover:bg-[#a8e035]"
             >
-              Browse Websites
+  Browse Websites & Place Orders
             </button>
           </div>
         )}

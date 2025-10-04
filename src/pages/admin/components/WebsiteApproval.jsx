@@ -82,6 +82,14 @@ const WebsiteApproval = () => {
         case 'delete':
           response = await adminAPI.deleteWebsite(websiteId);
           break;
+        case 'edit':
+          // For edit action, we just update the website status to indicate it needs re-moderation
+          response = await adminAPI.reviewWebsite(websiteId, { 
+            ...data, 
+            status: 'submitted',
+            needsReModeration: true 
+          });
+          break;
         default:
           return;
       }
@@ -345,7 +353,11 @@ const WebsiteApproval = () => {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-gray-500">Category:</span>
-                  <span className="text-xs font-medium capitalize">{website.category}</span>
+                  <span className="text-xs font-medium capitalize">
+                    {website.allCategories && website.allCategories.length > 0 
+                      ? website.allCategories.join(', ') 
+                      : (website.category || "General")}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-gray-500">Language:</span>
@@ -420,6 +432,17 @@ const WebsiteApproval = () => {
                       <XCircleIcon className="h-4 w-4" />
                     </button>
                   </>
+                )}
+                
+                {/* Add edit button for approved websites */}
+                {website.status === 'approved' && (
+                  <button
+                    onClick={() => handleWebsiteAction(website._id, 'edit', { reason: 'Needs re-moderation' })}
+                    disabled={actionLoading}
+                    className="px-3 py-1 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50"
+                  >
+                    <span className="text-xs">Edit</span>
+                  </button>
                 )}
               </div>
             </div>
@@ -1143,6 +1166,17 @@ const WebsiteReviewModal = ({ website, onClose, onAction, loading }) => {
                     </>
                   )}
                 </>
+              )}
+              
+              {/* Add edit button for approved websites in the modal */}
+              {website.status === 'approved' && (
+                <button
+                  onClick={() => handleWebsiteAction(website._id, 'edit', { reason: 'Needs re-moderation' })}
+                  disabled={loading}
+                  className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-yellow-600 text-base font-medium text-white hover:bg-yellow-700 disabled:opacity-50 sm:text-sm"
+                >
+                  Request Edit
+                </button>
               )}
               
               <button

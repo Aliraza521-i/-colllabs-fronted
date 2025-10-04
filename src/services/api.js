@@ -151,11 +151,16 @@ export const orderAPI = {
   
   // Advertiser endpoints
   createOrder: (orderData) => api.post('/orders', orderData),
+  processOrderWithBalance: (cartData) => api.post('/orders/process-with-balance', cartData),
   
   // Shared endpoints
   getOrderDetails: (orderId) => api.get(`/orders/${orderId}`),
   addMessage: (orderId, messageData) => api.post(`/orders/${orderId}/messages`, messageData),
   createOrderChat: (orderId) => api.post(`/orders/${orderId}/chat`),
+  
+  // Article data endpoints
+  saveArticleData: (orderId, articleData) => api.post(`/orders/${orderId}/article`, articleData),
+  getArticleData: (orderId) => api.get(`/orders/${orderId}/article`),
 };
 
 // Admin API calls
@@ -199,6 +204,10 @@ export const websiteAPI = {
     console.log('API: Getting website with ID:', websiteId);
     return api.get(`/websites/${websiteId}`);
   },
+  getWebsiteDetails: (websiteId) => {
+    console.log('API: Getting website details with pricing for ID:', websiteId);
+    return api.get(`/advertiser/websites/${websiteId}`);
+  },
   updateWebsite: (websiteId, data) => api.put(`/websites/${websiteId}`, data),
   deleteWebsite: (websiteId) => api.delete(`/websites/${websiteId}`),
   
@@ -221,7 +230,12 @@ export const userAPI = {
   getProfile: () => api.get('/user/profile'),
   updateProfile: (data) => api.put('/user/profile', data),
   changePassword: (data) => api.put('/user/change-password', data),
-  updateRole: (newRole) => api.put('/user/role', { newRole })
+  updateRole: (newRole) => api.put('/user/role', { newRole }),
+  uploadProfileImage: (formData) => api.post('/user/profile/image', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
 };
 
 // Chat API calls

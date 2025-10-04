@@ -3,6 +3,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ChatProvider } from './contexts/ChatContext'
 import { QualityProvider } from './contexts/QualityContext'
 import { NotificationProvider } from './contexts/NotificationContext'
+import { CartProvider } from './contexts/CartContext'
 import Routing from './Routes/Routing'
 
 const App = () => {
@@ -11,7 +12,9 @@ const App = () => {
       <ChatProvider>
         <QualityProvider>
           <NotificationProvider>
-            <Routing/>
+            <CartProvider>
+              <Routing/>
+            </CartProvider>
           </NotificationProvider>
         </QualityProvider>
       </ChatProvider>

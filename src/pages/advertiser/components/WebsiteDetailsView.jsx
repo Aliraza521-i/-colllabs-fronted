@@ -236,7 +236,8 @@ const WebsiteDetailsView = ({ website }) => {
         metrics: [
           { label: "DA", value: website.metrics?.domainAuthority || "N/A" },
           { label: "PA", value: website.metrics?.pageAuthority || "N/A" },
-          { label: "DR", value: website.metrics?.domainRating || "N/A" }
+          { label: "SS", value: website.metrics?.spamScore || "N/A" },
+          { label: "Domain Age", value: website.metrics?.domainAge || "N/A" }
         ]
       },
       {
@@ -245,33 +246,45 @@ const WebsiteDetailsView = ({ website }) => {
         metrics: [
           { label: "DR", value: website.metrics?.ahrefsDomainRating || "N/A" },
           { label: "UR", value: website.metrics?.urlRating || "N/A" },
-          { label: "Traffic", value: website.metrics?.ahrefsTraffic ? website.metrics.ahrefsTraffic.toLocaleString() : "N/A" }
+          { label: "Traffic", value: website.metrics?.ahrefsTraffic ? website.metrics.ahrefsTraffic.toLocaleString() : "N/A" },
+          { label: "Keywords", value: website.metrics?.ahrefsKeywords || "N/A" },
+          { label: "Referring Domains", value: website.metrics?.referringDomains || "N/A" }
         ]
       },
       {
         provider: "Semrush",
         icon: "S",
         metrics: [
-          { label: "Rank", value: website.metrics?.semrushRank || "N/A" },
+          { label: "AS", value: website.metrics?.semrushAuthorityScore || "N/A" },
           { label: "Traffic", value: website.metrics?.semrushTraffic ? website.metrics.semrushTraffic.toLocaleString() : "N/A" },
-          { label: "Keywords", value: website.metrics?.semrushKeywords || "N/A" }
+          { label: "Keywords", value: website.metrics?.semrushKeywords || "N/A" },
+          { label: "Referring Domains", value: website.metrics?.semrushReferringDomains || "N/A" }
+        ]
+      },
+      {
+        provider: "Majestic",
+        icon: "Mj",
+        metrics: [
+          { label: "TF", value: website.metrics?.majesticTrustFlow || "N/A" },
+          { label: "CF", value: website.metrics?.majesticCitationFlow || "N/A" },
+          { label: "Total Index", value: website.metrics?.majesticTotalIndex || "N/A" }
         ]
       }
     ];
 
     return metrics.map((provider, index) => (
-      <div key={index} className="bg-[#2a2a2a] border border-[#bff747]/30 rounded-lg p-4">
+      <div key={index} className="bg-[#2a2a2a] border border-[#bff747]/30 rounded-lg p-4 flex-1 min-w-[200px]">
         <div className="flex items-center mb-3">
           <div className="w-8 h-8 rounded-full bg-[#bff747]/20 flex items-center justify-center text-[#bff747] font-bold text-sm">
             {provider.icon}
           </div>
           <h3 className="ml-2 font-semibold text-[#bff747]">{provider.provider}</h3>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="space-y-2">
           {provider.metrics.map((metric, idx) => (
-            <div key={idx} className="text-center">
+            <div key={idx} className="flex justify-between items-center py-1 border-b border-[#bff747]/10 last:border-b-0">
               <div className="text-xs text-gray-400">{metric.label}</div>
-              <div className="font-semibold text-[#bff747]">{metric.value}</div>
+              <div className="font-semibold text-[#bff747] text-sm">{metric.value}</div>
             </div>
           ))}
         </div>
@@ -346,7 +359,11 @@ const WebsiteDetailsView = ({ website }) => {
                     <TagIcon className="h-5 w-5 text-[#bff747] mr-2" />
                     <div>
                       <p className="text-sm text-gray-400">Category</p>
-                      <p className="font-medium capitalize text-[#bff747]">{website.category || 'Not specified'}</p>
+                      <p className="font-medium capitalize text-[#bff747]">
+                        {website.allCategories && website.allCategories.length > 0 
+                          ? website.allCategories.join(', ') 
+                          : (website.category || 'Not specified')}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center">
@@ -368,6 +385,17 @@ const WebsiteDetailsView = ({ website }) => {
                     <div>
                       <p className="text-sm text-gray-400">Link Type</p>
                       <p className="font-medium capitalize text-[#bff747]">{website.linkType || 'Not specified'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center">
+                    <TagIcon className="h-5 w-5 text-[#bff747] mr-2" />
+                    <div>
+                      <p className="text-sm text-gray-400">Keywords</p>
+                      <p className="font-medium text-[#bff747]">
+                        {website.keywords && website.keywords.length > 0 
+                          ? website.keywords.join(', ') 
+                          : 'Not specified'}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -425,6 +453,23 @@ const WebsiteDetailsView = ({ website }) => {
             </div>
           </div>
 
+          {/* Publishing Sections and Advertising Requirements */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div className="bg-[#2a2a2a] rounded-lg p-5 border border-[#bff747]/30">
+              <h3 className="text-lg font-semibold text-[#bff747] mb-3">Publishing Sections</h3>
+              <p className="text-gray-300 text-sm">
+                {website.publishingSections || 'Not specified'}
+              </p>
+            </div>
+            
+            <div className="bg-[#2a2a2a] rounded-lg p-5 border border-[#bff747]/30">
+              <h3 className="text-lg font-semibold text-[#bff747] mb-3">Advertising Requirements</h3>
+              <p className="text-gray-300 text-sm">
+                {website.advertisingRequirements || 'Not specified'}
+              </p>
+            </div>
+          </div>
+
           {/* Pricing Section */}
           <div className="mb-8">
             <h2 className="text-lg font-semibold text-[#bff747] mb-4">Pricing Options</h2>
@@ -446,11 +491,11 @@ const WebsiteDetailsView = ({ website }) => {
                 </p>
               </div>
               <div className="bg-[#2a2a2a] rounded-lg p-5 text-center border border-[#bff747]/30">
-                <ClockIcon className="h-8 w-8 text-[#bff747] mx-auto mb-3" />
-                <h3 className="font-semibold text-[#bff747] mb-1">Turnaround</h3>
-                <p className="text-sm text-gray-400 mb-2">Average completion</p>
+                <TagIcon className="h-8 w-8 text-[#bff747] mx-auto mb-3" />
+                <h3 className="font-semibold text-[#bff747] mb-1">Sensitive Topic Price</h3>
+                <p className="text-sm text-gray-400 mb-2">For sensitive content</p>
                 <p className="text-2xl font-bold text-[#bff747]">
-                  {website.turnaroundTime || 0} days
+                  {formatPrice(website.sensitiveContentExtraCharge || 0)}
                 </p>
               </div>
             </div>
@@ -462,8 +507,118 @@ const WebsiteDetailsView = ({ website }) => {
               <ChartBarIcon className="h-5 w-5 mr-2 text-[#bff747]" />
               SEO Metrics
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {renderSEOMetrics()}
+            <div className="flex flex-col gap-4">
+              {/* Moz - Full width */}
+              <div className="bg-[#2a2a2a] border border-[#bff747]/30 rounded-lg p-4">
+                <div className="flex items-center mb-3">
+                  <div className="w-8 h-8 rounded-full bg-[#bff747]/20 flex items-center justify-center text-[#bff747] font-bold text-sm">
+                    M
+                  </div>
+                  <h3 className="ml-2 font-semibold text-[#bff747]">Moz</h3>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
+                    <div className="text-xs text-gray-400">DA</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.domainAuthority || "N/A"}</div>
+                  </div>
+                  <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
+                    <div className="text-xs text-gray-400">PA</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.pageAuthority || "N/A"}</div>
+                  </div>
+                  <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
+                    <div className="text-xs text-gray-400">SS</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.spamScore || "N/A"}</div>
+                  </div>
+                  <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
+                    <div className="text-xs text-gray-400">Domain Age</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.domainAge || "N/A"}</div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Ahrefs - Full width */}
+              <div className="bg-[#2a2a2a] border border-[#bff747]/30 rounded-lg p-4">
+                <div className="flex items-center mb-3">
+                  <div className="w-8 h-8 rounded-full bg-[#bff747]/20 flex items-center justify-center text-[#bff747] font-bold text-sm">
+                    A
+                  </div>
+                  <h3 className="ml-2 font-semibold text-[#bff747]">Ahrefs</h3>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
+                    <div className="text-xs text-gray-400">DR</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.ahrefsDomainRating || "N/A"}</div>
+                  </div>
+                  <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
+                    <div className="text-xs text-gray-400">UR</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.urlRating || "N/A"}</div>
+                  </div>
+                  <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
+                    <div className="text-xs text-gray-400">Traffic</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.ahrefsTraffic ? website.metrics.ahrefsTraffic.toLocaleString() : "N/A"}</div>
+                  </div>
+                  <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
+                    <div className="text-xs text-gray-400">Keywords</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.ahrefsKeywords || "N/A"}</div>
+                  </div>
+                  <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
+                    <div className="text-xs text-gray-400">Referring Domains</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.referringDomains || "N/A"}</div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Semrush - Full width */}
+              <div className="bg-[#2a2a2a] border border-[#bff747]/30 rounded-lg p-4">
+                <div className="flex items-center mb-3">
+                  <div className="w-8 h-8 rounded-full bg-[#bff747]/20 flex items-center justify-center text-[#bff747] font-bold text-sm">
+                    S
+                  </div>
+                  <h3 className="ml-2 font-semibold text-[#bff747]">Semrush</h3>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
+                    <div className="text-xs text-gray-400">AS</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.semrushAuthorityScore || "N/A"}</div>
+                  </div>
+                  <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
+                    <div className="text-xs text-gray-400">Traffic</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.semrushTraffic ? website.metrics.semrushTraffic.toLocaleString() : "N/A"}</div>
+                  </div>
+                  <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
+                    <div className="text-xs text-gray-400">Keywords</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.semrushKeywords || "N/A"}</div>
+                  </div>
+                  <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
+                    <div className="text-xs text-gray-400">Referring Domains</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.semrushReferringDomains || "N/A"}</div>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Majestic - Full width */}
+              <div className="bg-[#2a2a2a] border border-[#bff747]/30 rounded-lg p-4">
+                <div className="flex items-center mb-3">
+                  <div className="w-8 h-8 rounded-full bg-[#bff747]/20 flex items-center justify-center text-[#bff747] font-bold text-sm">
+                    Mj
+                  </div>
+                  <h3 className="ml-2 font-semibold text-[#bff747]">Majestic</h3>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
+                    <div className="text-xs text-gray-400">TF</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.majesticTrustFlow || "N/A"}</div>
+                  </div>
+                  <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
+                    <div className="text-xs text-gray-400">CF</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.majesticCitationFlow || "N/A"}</div>
+                  </div>
+                  <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
+                    <div className="text-xs text-gray-400">Total Index</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.majesticTotalIndex || "N/A"}</div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

@@ -296,21 +296,20 @@ const CheckboxGroup = ({
 const DescriptionPricePage = () => {
   const [formData, setFormData] = useState({
     websiteName: '',
+    placementRequirement: '',
+    publicationSection: '',
     country: '',
     language: '',
     maxAmount: '4',
-    imagesPerPost: '2',
     linksAdmitted: 'Follow',
-    publishTime: '5 Days',
     categories: [],
     keywords: '',
     sensitiveTopics: [],
     sponsorshipNotification: 'Always',
-    homePagePublish: false,
-    relatedCategories: false,
     normalPrice: '30',
     sensitiveTopicPrice: '30',
     copywritingPrice: '30',
+    homepageAnnouncementPrice: '0',
     discount: '30',
     additionalLanguages: [],
     additionalCountries: []
@@ -318,9 +317,13 @@ const DescriptionPricePage = () => {
 
   const [copywritingEnabled, setCopywritingEnabled] = useState(false);
   const [sensitiveTopicEnabled, setSensitiveTopicEnabled] = useState(false);
+  const [homepageAnnouncementFree, setHomepageAnnouncementFree] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isForModeration, setIsForModeration] = useState(false);
+  const [showReModerationNotice, setShowReModerationNotice] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -412,6 +415,10 @@ const DescriptionPricePage = () => {
       errors.categories = 'At least one category is required';
     }
     
+    if (!formData.publicationSection.trim()) {
+      errors.publicationSection = 'Publishing sections are required';
+    }
+    
     if (!formData.normalPrice || parseFloat(formData.normalPrice) <= 0) {
       errors.normalPrice = 'Normal price must be greater than 0';
     }
@@ -424,8 +431,92 @@ const DescriptionPricePage = () => {
       errors.sensitiveTopicPrice = 'Sensitive topic price must be greater than 0 when enabled';
     }
     
+    // Validate maxAmount is between 1 and 4
+    const maxAmountValue = parseInt(formData.maxAmount);
+    if (isNaN(maxAmountValue) || maxAmountValue < 1 || maxAmountValue > 4) {
+      errors.maxAmount = 'Maximum amount of links per post must be between 1 and 4';
+    }
+    
+    // Validate placement requirement length
+    if (formData.placementRequirement && formData.placementRequirement.length > 300) {
+      errors.placementRequirement = 'Placement requirement must be 300 characters or less';
+    }
+    
+    // Validate homepage announcement price
+    if (!homepageAnnouncementFree && (!formData.homepageAnnouncementPrice || parseFloat(formData.homepageAnnouncementPrice) < 0)) {
+      errors.homepageAnnouncementPrice = 'Homepage announcement price must be 0 or greater';
+    }
+    
     return errors;
   };
+
+  // Initialize form with existing website data
+  useEffect(() => {
+    const website = location.state?.website;
+    const editMode = location.state?.editMode;
+    const forModeration = location.state?.forModeration;
+    
+    if (website) {
+      setIsEditMode(!!editMode);
+      setIsForModeration(!!forModeration);
+      
+      // Show re-moderation notice if editing an approved website
+      if (editMode && website.status === 'approved') {
+        setShowReModerationNotice(true);
+      }
+      
+      // Map backend link type values to frontend values
+      let linksAdmittedValue;
+      switch (website.linkType) {
+        case 'dofollow':
+          linksAdmittedValue = 'Follow';
+          break;
+        case 'nofollow':
+          linksAdmittedValue = 'No Follow';
+          break;
+        default:
+          linksAdmittedValue = 'Follow';
+      }
+      
+      // Map sensitive topics from backend values to frontend labels
+      const sensitiveTopicLabels = website.acceptedSensitiveCategories?.map(topicValue => {
+        const topic = sensitiveTopics.find(t => t.value === topicValue);
+        return topic ? topic.label : topicValue;
+      }) || [];
+      
+      // Parse categories from the category field
+      const allCategories = website.allCategories || 
+        (website.category ? website.category.split(', ').map(cat => cat.trim()) : []);
+      
+      setFormData({
+        websiteName: website.siteDescription || '',
+        placementRequirement: website.placementRequirement || '',
+        publicationSection: website.publicationSection || '',
+        country: website.country || '',
+        language: website.mainLanguage || '',
+        maxAmount: website.numberOfLinks?.toString() || '4',
+        linksAdmitted: linksAdmittedValue,
+        categories: allCategories,
+        keywords: website.keywords?.join(', ') || '',
+        sensitiveTopics: sensitiveTopicLabels,
+        sponsorshipNotification: website.sponsorshipNotification || 'Always',
+        normalPrice: website.publishingPrice?.toString() || '30',
+        sensitiveTopicPrice: website.sensitiveContentExtraCharge?.toString() || '30',
+        copywritingPrice: website.copywritingPrice?.toString() || '30',
+        homepageAnnouncementPrice: website.homepageAnnouncementPrice?.toString() || '0',
+        discount: website.discountPercentage?.toString() || '30',
+        additionalLanguages: website.additionalLanguages || [],
+        additionalCountries: website.additionalCountries || []
+      });
+      
+      // Set homepage announcement free option based on price
+      setHomepageAnnouncementFree(!website.homepageAnnouncementPrice || website.homepageAnnouncementPrice <= 0);
+      
+      // Set toggles based on existing data
+      setCopywritingEnabled(website.copywritingPrice > 0);
+      setSensitiveTopicEnabled(website.sensitiveContentExtraCharge > 0);
+    }
+  }, [location.state]);
 
   // Handle form submission
   const handleSubmit = async (e) => {
@@ -466,7 +557,10 @@ const DescriptionPricePage = () => {
       // Prepare data for submission
       const submissionData = {
         siteDescription: formData.websiteName.trim(),
-        category: formData.categories[0] || 'General', // Use first category as main category
+        placementRequirement: formData.placementRequirement.trim(),
+        publicationSection: formData.publicationSection.trim(),
+        category: formData.categories.join(', ') || 'General', // Save all categories in main category field
+        additionalCategories: [], // Remove additional categories
         keywords: formData.keywords.split(',').map(k => k.trim()).filter(k => k),
         country: formData.country.trim(),
         mainLanguage: formData.language.trim(),
@@ -474,7 +568,7 @@ const DescriptionPricePage = () => {
         additionalLanguages: formData.additionalLanguages,
         publishingPrice: parseFloat(formData.normalPrice),
         copywritingPrice: copywritingEnabled ? parseFloat(formData.copywritingPrice) : 0,
-        homepageAnnouncementPrice: 0,
+        homepageAnnouncementPrice: homepageAnnouncementFree ? 0 : parseFloat(formData.homepageAnnouncementPrice),
         linkType: linkTypeValue,
         numberOfLinks: parseInt(formData.maxAmount),
         discountPercentage: parseFloat(formData.discount),
@@ -485,25 +579,61 @@ const DescriptionPricePage = () => {
         articleEditingPercentage: 10,
         publishingFormats: ['article'],
         hideDomain: false,
-        advertisingRequirements: 'Standard requirements',
-        publishingSections: 'General content'
+        advertisingRequirements: formData.placementRequirement || 'Standard requirements',
+        publishingSections: formData.publicationSection || 'General content'
       };
 
-      console.log('Submitting website data:', submissionData);
+      // Add status update based on workflow
+      if (isForModeration && !isEditMode) {
+        // When submitting for moderation from draft/verified state
+        submissionData.status = 'submitted';
+      } else if (isEditMode) {
+        // When editing an already approved website
+        // We don't change the status here as it should be handled by the admin
+        // Add a flag to indicate this is an edit requiring re-moderation
+        submissionData.needsReModeration = true;
+        submissionData.status = 'submitted'; // Set status to submitted for re-moderation
+      }
+
+    
 
       // Update website with the form data
       const response = await websiteAPI.updateWebsite(websiteId, submissionData);
       
       if (response.data && response.data.ok) {
         console.log('Website updated successfully:', response.data);
-        // Navigate to the next step
-        navigate('/publisher/earn');
+        
+        // Show success message for edit mode
+        if (isEditMode) {
+          // Show a message that the website is under re-moderation
+          alert('Updated website settings are currently under moderation');
+        }
+        
+        // Navigate to the websites list page
+        navigate('/publisher/websites');
       } else {
         throw new Error(response.data?.message || 'Failed to update website');
       }
     } catch (err) {
       console.error('Error submitting form:', err);
-      setError(err.message || 'Failed to submit form. Please try again.');
+      // Log more detailed error information
+      if (err.response) {
+        console.error('Error response data:', err.response.data);
+        console.error('Error response status:', err.response.status);
+        console.error('Error response headers:', err.response.headers);
+        
+        // Provide more specific error message based on response
+        let errorMessage = `Server error (${err.response.status})`;
+        if (err.response.data?.message) {
+          errorMessage += `: ${err.response.data.message}`;
+        }
+        if (err.response.data?.details) {
+          errorMessage += `. Details: ${JSON.stringify(err.response.data.details)}`;
+        }
+        setError(errorMessage);
+      } else {
+        setError(err.message || 'Failed to submit form. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -522,7 +652,9 @@ const DescriptionPricePage = () => {
               <div className="text-base sm:text-lg font-medium text-[#bff747] mb-2">Confirm your Ownership</div>
             </div>
             <div className="text-center flex-1 min-w-[100px] mb-2 sm:mb-0">
-              <div className="text-base sm:text-lg font-medium text-[#bff747] mb-2">Description and price</div>
+              <div className="text-base sm:text-lg font-medium text-[#bff747] mb-2">
+                {isEditMode ? 'Edit Website' : 'Description and price'}
+              </div>
             </div>
             <div className="text-center flex-1 min-w-[100px] mb-2 sm:mb-0">
               <div className="text-base sm:text-lg font-medium text-[#bff747] mb-2">Earn</div>
@@ -535,7 +667,7 @@ const DescriptionPricePage = () => {
               <div className="flex-1 h-1 bg-[#bff747]" />
               <div className="w-5 h-5 rounded-full bg-[#bff747] z-10 relative" />
               <div className="flex-1 h-1 bg-[#bff747]" />
-              <div className="w-5 h-5 rounded-full bg-[#bff747] z-10 relative" />
+              <div className={`w-5 h-5 rounded-full z-10 relative ${isForModeration || isEditMode ? 'bg-[#bff747]' : 'bg-gray-600'}`} />
               <div className="flex-1 h-1 bg-gray-600" />
               <div className="w-5 h-5 rounded-full bg-gray-600 z-10 relative" />
             </div>
@@ -549,11 +681,23 @@ const DescriptionPricePage = () => {
               {error}
             </div>
           )}
+          
+          {/* Re-moderation notice */}
+          {showReModerationNotice && (
+            <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-yellow-900/30 border border-yellow-500/30 text-yellow-300 rounded-lg text-sm">
+              Updated website settings are currently under moderation
+            </div>
+          )}
+          
+          {/* Page Title */}
+          <h2 className="text-xl font-medium text-[#bff747] mb-6 sm:mb-8 text-center">
+            {isEditMode ? 'Edit Website Details' : 'Website Description and Pricing'}
+          </h2>
 
           {/* Website Name */}
           <div className="mb-4 sm:mb-6">
             <label className="block text-[#bff747] font-medium mb-2 text-sm sm:text-base">
-              Website Name *
+              Website Description *
             </label>
             <textarea
               value={formData.websiteName}
@@ -568,6 +712,55 @@ const DescriptionPricePage = () => {
             />
             {validationErrors.websiteName && (
               <p className="mt-1 text-red-400 text-xs sm:text-sm">{validationErrors.websiteName}</p>
+            )}
+          </div>
+
+          {/* Advertising Requirements */}
+          <div className="mb-4 sm:mb-6">
+            <label className="block text-[#bff747] font-medium mb-2 text-sm sm:text-base">
+              Advertising Requirements (maximum 300 words)
+            </label>
+            <textarea
+              value={formData.placementRequirement}
+              onChange={(e) => handleInputChange('placementRequirement', e.target.value)}
+              className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none resize-none h-20 sm:h-24 bg-[#0c0c0c] text-[#bff747] text-sm sm:text-base ${
+                validationErrors.placementRequirement 
+                  ? 'border-red-500 focus:border-red-500' 
+                  : 'border-[#bff747]/30 focus:border-[#bff747]'
+              }`}
+              placeholder="Enter advertising requirements..."
+            />
+            <div className="flex justify-between items-center mt-1">
+              <div className="text-xs text-gray-400">
+                Maximum 300 characters
+              </div>
+              <div className="text-xs text-gray-400">
+                {formData.placementRequirement.length}/300
+              </div>
+            </div>
+            {validationErrors.placementRequirement && (
+              <p className="mt-1 text-red-400 text-xs sm:text-sm">{validationErrors.placementRequirement}</p>
+            )}
+          </div>
+
+          {/* Publishing Sections */}
+          <div className="mb-4 sm:mb-6">
+            <label className="block text-[#bff747] font-medium mb-2 text-sm sm:text-base">
+              Publishing Sections *
+            </label>
+            <textarea
+              value={formData.publicationSection}
+              onChange={(e) => handleInputChange('publicationSection', e.target.value)}
+              className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none resize-none h-20 sm:h-24 bg-[#0c0c0c] text-[#bff747] text-sm sm:text-base ${
+                validationErrors.publicationSection 
+                  ? 'border-red-500 focus:border-red-500' 
+                  : 'border-[#bff747]/30 focus:border-[#bff747]'
+              }`}
+              placeholder="Enter publishing sections..."
+              required
+            />
+            {validationErrors.publicationSection && (
+              <p className="mt-1 text-red-400 text-xs sm:text-sm">{validationErrors.publicationSection}</p>
             )}
           </div>
 
@@ -666,86 +859,6 @@ const DescriptionPricePage = () => {
             )}
           </div>
 
-          {/* Row 2: Max Amount and Images */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
-            <div>
-              <label className="block text-[#bff747] font-medium mb-2 text-sm sm:text-base">
-                Maximum Amount of link per post: *
-              </label>
-              <div className="relative">
-                <select
-                  value={formData.maxAmount}
-                  onChange={(e) => handleInputChange('maxAmount', e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-[#bff747]/30 rounded-lg focus:border-[#bff747] focus:outline-none appearance-none bg-[#0c0c0c] text-[#bff747]"
-                >
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
-                    <option key={num} value={num} className="bg-[#0c0c0c] text-[#bff747]">{num}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#bff747]" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-[#bff747] font-medium mb-2 text-sm sm:text-base">
-                How many images per post? *
-              </label>
-              <div className="relative">
-                <select
-                  value={formData.imagesPerPost}
-                  onChange={(e) => handleInputChange('imagesPerPost', e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-[#bff747]/30 rounded-lg focus:border-[#bff747] focus:outline-none appearance-none bg-[#0c0c0c] text-[#bff747]"
-                >
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
-                    <option key={num} value={num} className="bg-[#0c0c0c] text-[#bff747]">{num}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#bff747]" />
-              </div>
-            </div>
-          </div>
-
-          {/* Row 3: Links Admitted and Publish Time */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
-            <div>
-              <label className="block text-[#bff747] font-medium mb-2 text-sm sm:text-base">
-                Type of links admitted: *
-              </label>
-              <div className="relative">
-                <select
-                  value={formData.linksAdmitted}
-                  onChange={(e) => handleInputChange('linksAdmitted', e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-[#bff747]/30 rounded-lg focus:border-[#bff747] focus:outline-none appearance-none bg-[#0c0c0c] text-[#bff747]"
-                >
-                  <option className="bg-[#0c0c0c] text-[#bff747]">Follow</option>
-                  <option className="bg-[#0c0c0c] text-[#bff747]">No Follow</option>
-                  <option className="bg-[#0c0c0c] text-[#bff747]">Sponsored</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#bff747]" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-[#bff747] font-medium mb-2 text-sm sm:text-base">
-                Publish Time:
-              </label>
-              <div className="relative">
-                <select
-                  value={formData.publishTime}
-                  onChange={(e) => handleInputChange('publishTime', e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-[#bff747]/30 rounded-lg focus:border-[#bff747] focus:outline-none appearance-none bg-[#0c0c0c] text-[#bff747]"
-                >
-                  <option className="bg-[#0c0c0c] text-[#bff747]">1 Day</option>
-                  <option className="bg-[#0c0c0c] text-[#bff747]">2 Days</option>
-                  <option className="bg-[#0c0c0c] text-[#bff747]">3 Days</option>
-                  <option className="bg-[#0c0c0c] text-[#bff747]">5 Days</option>
-                  <option className="bg-[#0c0c0c] text-[#bff747]">7 Days</option>
-                  <option className="bg-[#0c0c0c] text-[#bff747]">10 Days</option>
-                  <option className="bg-[#0c0c0c] text-[#bff747]">14 Days</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#bff747]" />
-              </div>
-            </div>
-          </div>
-
           {/* Categories */}
           <div className="mb-4 sm:mb-6">
             <label className="block text-[#bff747] font-medium mb-2 text-sm sm:text-base">
@@ -763,19 +876,8 @@ const DescriptionPricePage = () => {
               <p className="mt-1 text-red-400 text-xs sm:text-sm">{validationErrors.categories}</p>
             )}
             {formData.categories.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {formData.categories.map((category, index) => (
-                  <span key={index} className="inline-flex items-center px-2 py-1 bg-[#bff747]/20 text-[#bff747] text-xs rounded-full">
-                    {category}
-                    <button 
-                      type="button" 
-                      onClick={() => handleCategoryChange(formData.categories.filter(c => c !== category))}
-                      className="ml-1 text-[#bff747] hover:text-[#bff747]/80"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
+              <div className="mt-2 text-sm text-[#bff747]">
+                Selected categories: {formData.categories.join(', ')}
               </div>
             )}
           </div>
@@ -853,34 +955,53 @@ const DescriptionPricePage = () => {
             </div>
           </div>
 
-          {/* Checkboxes */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+          {/* Row 2: Max Amount and Links Admitted */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
             <div>
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={formData.homePagePublish}
-                  onChange={(e) => handleInputChange('homePagePublish', e.target.checked)}
-                  className="w-4 h-4 text-[#bff747] rounded focus:ring-[#bff747] bg-[#0c0c0c] border-[#bff747]/30"
-                />
-                <span className="text-sm text-gray-300">Do you publish on the home of your website?</span>
+              <label className="block text-[#bff747] font-medium mb-2 text-sm sm:text-base">
+                Maximum Amount of link per post: *
               </label>
+              <div className="relative">
+                <select
+                  value={formData.maxAmount}
+                  onChange={(e) => handleInputChange('maxAmount', e.target.value)}
+                  className={`w-full px-3 sm:px-4 py-2 sm:py-3 border rounded-lg focus:outline-none appearance-none bg-[#0c0c0c] text-[#bff747] ${
+                    validationErrors.maxAmount 
+                      ? 'border-red-500 focus:border-red-500' 
+                      : 'border-[#bff747]/30 focus:border-[#bff747]'
+                  }`}
+                >
+                  {[1, 2, 3, 4].map(num => (
+                    <option key={num} value={num} className="bg-[#0c0c0c] text-[#bff747]">{num}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#bff747]" />
+              </div>
+              {validationErrors.maxAmount && (
+                <p className="mt-1 text-red-400 text-xs sm:text-sm">{validationErrors.maxAmount}</p>
+              )}
             </div>
             <div>
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={formData.relatedCategories}
-                  onChange={(e) => handleInputChange('relatedCategories', e.target.checked)}
-                  className="w-4 h-4 text-[#bff747] rounded focus:ring-[#bff747] bg-[#0c0c0c] border-[#bff747]/30"
-                />
-                <span className="text-sm text-gray-300">Do you publish in related categories?</span>
+              <label className="block text-[#bff747] font-medium mb-2 text-sm sm:text-base">
+                Type of links admitted: *
               </label>
+              <div className="relative">
+                <select
+                  value={formData.linksAdmitted}
+                  onChange={(e) => handleInputChange('linksAdmitted', e.target.value)}
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-[#bff747]/30 rounded-lg focus:border-[#bff747] focus:outline-none appearance-none bg-[#0c0c0c] text-[#bff747]"
+                >
+                  <option className="bg-[#0c0c0c] text-[#bff747]">Follow</option>
+                  <option className="bg-[#0c0c0c] text-[#bff747]">No Follow</option>
+                  <option className="bg-[#0c0c0c] text-[#bff747]">Sponsored</option>
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#bff747]" />
+              </div>
             </div>
           </div>
 
           {/* Pricing Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
             <div>
               <label className="block text-[#bff747] font-medium mb-2 text-sm sm:text-base">
                 Normal Price *
@@ -935,10 +1056,6 @@ const DescriptionPricePage = () => {
                 <p className="mt-1 text-red-400 text-xs sm:text-sm">{validationErrors.sensitiveTopicPrice}</p>
               )}
             </div>
-          </div>
-
-          {/* Bottom Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-8">
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-[#bff747] font-medium text-sm sm:text-base">
@@ -972,20 +1089,57 @@ const DescriptionPricePage = () => {
                 <p className="mt-1 text-red-400 text-xs sm:text-sm">{validationErrors.copywritingPrice}</p>
               )}
             </div>
-            <div>
-              <label className="block text-[#bff747] font-medium mb-2 text-sm sm:text-base">
-                I am ready to give a discount on publishing
+          </div>
+
+          {/* Homepage Announcement Price - Moved to bottom */}
+          <div className="mb-4 sm:mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-[#bff747] font-medium text-sm sm:text-base">
+                Homepage Announcement Price
               </label>
-              <div className="flex">
+              <label className="relative inline-flex items-center cursor-pointer">
                 <input
-                  type="number"
-                  value={formData.discount}
-                  onChange={(e) => handleInputChange('discount', e.target.value)}
-                  className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border border-[#bff747]/30 rounded-l-lg focus:border-[#bff747] focus:outline-none bg-[#0c0c0c] text-[#bff747]"
+                  type="checkbox"
+                  checked={homepageAnnouncementFree}
+                  onChange={(e) => setHomepageAnnouncementFree(e.target.checked)}
+                  className="sr-only peer"
                 />
-                <div className="px-3 sm:px-4 py-2 sm:py-3 bg-[#0c0c0c] border border-l-0 border-[#bff747]/30 rounded-r-lg flex items-center text-[#bff747]">
-                  %
-                </div>
+                <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#bff747]/30 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-[#bff747] after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#bff747]"></div>
+              </label>
+            </div>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#bff747]">$</span>
+              <input
+                type="number"
+                value={formData.homepageAnnouncementPrice}
+                onChange={(e) => handleInputChange('homepageAnnouncementPrice', e.target.value)}
+                disabled={homepageAnnouncementFree}
+                className={`w-full pl-8 pr-4 py-3 border rounded-lg focus:outline-none ${
+                  !homepageAnnouncementFree && validationErrors.homepageAnnouncementPrice 
+                    ? 'border-red-500 focus:border-red-500' 
+                    : 'border-[#bff747]/30 focus:border-[#bff747]'
+                } ${homepageAnnouncementFree ? 'bg-gray-800 text-gray-500' : 'bg-[#0c0c0c] text-[#bff747]'}`}
+              />
+            </div>
+            {validationErrors.homepageAnnouncementPrice && (
+              <p className="mt-1 text-red-400 text-xs sm:text-sm">{validationErrors.homepageAnnouncementPrice}</p>
+            )}
+          </div>
+
+          {/* Discount Section */}
+          <div className="mb-4 sm:mb-8">
+            <label className="block text-[#bff747] font-medium mb-2 text-sm sm:text-base">
+              I am ready to give a discount on publishing
+            </label>
+            <div className="flex">
+              <input
+                type="number"
+                value={formData.discount}
+                onChange={(e) => handleInputChange('discount', e.target.value)}
+                className="flex-1 px-3 sm:px-4 py-2 sm:py-3 border border-[#bff747]/30 rounded-l-lg focus:border-[#bff747] focus:outline-none bg-[#0c0c0c] text-[#bff747]"
+              />
+              <div className="px-3 sm:px-4 py-2 sm:py-3 bg-[#0c0c0c] border border-l-0 border-[#bff747]/30 rounded-r-lg flex items-center text-[#bff747]">
+                %
               </div>
             </div>
           </div>

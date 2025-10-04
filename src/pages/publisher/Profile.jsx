@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { userAPI } from '../../services/api';
 
@@ -10,8 +10,11 @@ const Profile = () => {
     email: '',
     phoneNumber: ''
   });
+  const [profileImage, setProfileImage] = useState(null);
+  const [profileImagePreview, setProfileImagePreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (user) {
@@ -21,6 +24,7 @@ const Profile = () => {
         email: user.email || '',
         phoneNumber: user.phoneNumber || ''
       });
+      setProfileImagePreview(user.profileImage || null);
     }
   }, [user]);
 
@@ -32,18 +36,78 @@ const Profile = () => {
     }));
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setMessage({ type: 'error', text: 'Please select an image file' });
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setMessage({ type: 'error', text: 'File size should be less than 5MB' });
+        return;
+      }
+      
+      setProfileImage(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+      
+      setMessage({ type: '', text: '' });
+    }
+  };
+
+  const handleImageClick = () => {
+    fileInputRef.current.click();
+  };
+
+  const removeProfileImage = () => {
+    setProfileImage(null);
+    setProfileImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setMessage({ type: '', text: '' });
 
     try {
-      const response = await userAPI.updateProfile(profileData);
+      // If there's a new profile image, upload it first
+      let profileImageUrl = user?.profileImage || null;
+      if (profileImage) {
+        const formData = new FormData();
+        formData.append('profileImage', profileImage);
+        
+        const imageResponse = await userAPI.uploadProfileImage(formData);
+        if (imageResponse.data.ok) {
+          profileImageUrl = imageResponse.data.data.profileImage;
+        } else {
+          throw new Error(imageResponse.data.message || 'Failed to upload profile image');
+        }
+      }
+      
+      // Update profile data
+      const response = await userAPI.updateProfile({
+        ...profileData,
+        profileImage: profileImageUrl
+      });
+      
       if (response.data.ok) {
         // Update the user in context
         const updatedUser = {
           ...user,
-          ...profileData
+          ...profileData,
+          profileImage: profileImageUrl
         };
         updateUser(updatedUser);
         setMessage({ type: 'success', text: 'Profile updated successfully!' });
@@ -51,7 +115,7 @@ const Profile = () => {
         setMessage({ type: 'error', text: response.data.message || 'Failed to update profile' });
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' });
+      setMessage({ type: 'error', text: error.message || 'Failed to update profile. Please try again.' });
     } finally {
       setLoading(false);
     }
@@ -68,78 +132,128 @@ const Profile = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label htmlFor="firstName" className="block text-sm font-medium text-[#bff747] mb-1">
-                First Name
-              </label>
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Profile Image Section */}
+          <div className="md:w-1/3 flex flex-col items-center">
+            <div className="relative">
+              <div 
+                className="w-32 h-32 rounded-full bg-gray-700 border-2 border-[#bff747]/30 overflow-hidden cursor-pointer flex items-center justify-center"
+                onClick={handleImageClick}
+              >
+                {profileImagePreview ? (
+                  <img 
+                    src={profileImagePreview} 
+                    alt="Profile" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-gray-400 text-center">
+                    <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span className="text-xs mt-2 block">Click to upload</span>
+                  </div>
+                )}
+              </div>
               <input
-                type="text"
-                id="firstName"
-                name="firstName"
-                value={profileData.firstName}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-[#bff747]/30 rounded-md bg-[#0c0c0c] text-[#bff747] focus:outline-none focus:ring-2 focus:ring-[#bff747] focus:border-transparent"
-                required
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
               />
+              {profileImagePreview && (
+                <button
+                  type="button"
+                  onClick={removeProfileImage}
+                  className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1 hover:bg-red-600"
+                >
+                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
             </div>
-
-            <div>
-              <label htmlFor="lastName" className="block text-sm font-medium text-[#bff747] mb-1">
-                Last Name
-              </label>
-              <input
-                type="text"
-                id="lastName"
-                name="lastName"
-                value={profileData.lastName}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-[#bff747]/30 rounded-md bg-[#0c0c0c] text-[#bff747] focus:outline-none focus:ring-2 focus:ring-[#bff747] focus:border-transparent"
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-[#bff747] mb-1">
-                Email Address
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={profileData.email}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-[#bff747]/30 rounded-md bg-[#0c0c0c] text-[#bff747] focus:outline-none focus:ring-2 focus:ring-[#bff747] focus:border-transparent"
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="phoneNumber" className="block text-sm font-medium text-[#bff747] mb-1">
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                id="phoneNumber"
-                name="phoneNumber"
-                value={profileData.phoneNumber}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-[#bff747]/30 rounded-md bg-[#0c0c0c] text-[#bff747] focus:outline-none focus:ring-2 focus:ring-[#bff747] focus:border-transparent"
-              />
-            </div>
+            <p className="text-xs text-gray-400 mt-2 text-center">Click on image to change profile picture</p>
+            <p className="text-xs text-gray-500 mt-1 text-center">Max file size: 5MB</p>
           </div>
 
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2 bg-[#bff747] text-[#0c0c0c] rounded-md hover:bg-[#bff747]/80 focus:outline-none focus:ring-2 focus:ring-[#bff747] font-medium disabled:opacity-50"
-            >
-              {loading ? 'Saving...' : 'Save Changes'}
-            </button>
+          {/* Profile Form Section */}
+          <div className="md:w-2/3">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label htmlFor="firstName" className="block text-sm font-medium text-[#bff747] mb-1">
+                    First Name
+                  </label>
+                  <input
+                    type="text"
+                    id="firstName"
+                    name="firstName"
+                    value={profileData.firstName}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-[#bff747]/30 rounded-md bg-[#0c0c0c] text-[#bff747] focus:outline-none focus:ring-2 focus:ring-[#bff747] focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="lastName" className="block text-sm font-medium text-[#bff747] mb-1">
+                    Last Name
+                  </label>
+                  <input
+                    type="text"
+                    id="lastName"
+                    name="lastName"
+                    value={profileData.lastName}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-[#bff747]/30 rounded-md bg-[#0c0c0c] text-[#bff747] focus:outline-none focus:ring-2 focus:ring-[#bff747] focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-[#bff747] mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={profileData.email}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-[#bff747]/30 rounded-md bg-[#0c0c0c] text-[#bff747] focus:outline-none focus:ring-2 focus:ring-[#bff747] focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="phoneNumber" className="block text-sm font-medium text-[#bff747] mb-1">
+                    Phone Number
+                  </label>
+                  <input
+                    type="tel"
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    value={profileData.phoneNumber}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-[#bff747]/30 rounded-md bg-[#0c0c0c] text-[#bff747] focus:outline-none focus:ring-2 focus:ring-[#bff747] focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-6 py-2 bg-[#bff747] text-[#0c0c0c] rounded-md hover:bg-[#bff747]/80 focus:outline-none focus:ring-2 focus:ring-[#bff747] font-medium disabled:opacity-50"
+                >
+                  {loading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

@@ -1,28 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useParams, useSearchParams } from 'react-router-dom';
-import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
+import { ChatBubbleLeftRightIcon, ShoppingBagIcon } from '@heroicons/react/24/outline';
 import AdvertiserSidebar from './components/AdvertiserSidebar';
 import AdvertiserHeader from './components/AdvertiserHeader';
 import AdvertiserDashboardHome from './components/AdvertiserDashboardHome';
 import WebsiteBrowsing from './components/WebsiteBrowsing';
 import OrderManagement from './components/OrderManagement';
-import OrderPlacement from './components/OrderPlacement';
-import AdvertiserAnalytics from './components/AdvertiserAnalytics';
+
 import WalletManagement from './components/WalletManagement';
-import FavoriteWebsites from './components/FavoriteWebsites';
+
 import WebsiteDetailsView from './components/WebsiteDetailsView';
 import OrderDetailsView from './components/OrderDetailsView';
 import ProfileSettings from './components/ProfileSettings';
-import QualityManagement from './components/QualityManagement';
-import QualityCheckDetail from './components/QualityCheckDetail';
+
 import ProjectsDashboard from './components/ProjectsDashboard';
 import ProjectsDetails from './components/ProjectsDetails';
+import ShoppingCart from './components/ShoppingCart';
+import ChooseMyOwnArticle from './components/ChooseMyOwnArticle';
+import DepositPage from './components/DepositPage'; // Add this import
 import { useAuth } from '../../contexts/AuthContext';
 import { advertiserAPI, walletAPI } from '../../services/api';
 import ChatSidebar from '../../components/chat/ChatSidebar';
 import ChatInterface from '../../components/chat/ChatInterface';
 import { useChat } from '../../contexts/ChatContext';
-import BulkOrderManagement from './components/BulkOrderManagement';
 
 // Website Details Component
 const WebsiteDetails = () => {
@@ -172,6 +172,12 @@ const Messages = () => {
   );
 };
 
+// Create a wrapper component for ProjectsDetails to avoid potential import issues
+const ProjectsDetailsWrapper = () => {
+  // Import the component dynamically to avoid circular dependencies
+  return <ProjectsDetails />;
+};
+
 const AdvertiserDashboard = () => {
   const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -185,6 +191,15 @@ const AdvertiserDashboard = () => {
     // Removed role check to make dashboard publicly accessible
     fetchDashboardData();
     fetchWalletBalance();
+  }, []);
+
+  // Add interval to periodically refresh wallet balance
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchWalletBalance();
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchDashboardData = async () => {
@@ -211,7 +226,7 @@ const AdvertiserDashboard = () => {
     try {
       const response = await walletAPI.getBalance();
       if (response.data && response.data.ok) {
-        setWalletBalance(response.data.data.balance);
+        setWalletBalance(response.data.data.wallet.balance);
       } else {
         throw new Error(response.data?.message || 'Failed to fetch wallet balance');
       }
@@ -260,12 +275,6 @@ const AdvertiserDashboard = () => {
     );
   }
 
-  // Create a wrapper component for ProjectsDetails to avoid potential import issues
-  const ProjectsDetailsWrapper = () => {
-    // Import the component dynamically to avoid circular dependencies
-    return <ProjectsDetails />;
-  };
-
   return (
     <div className="min-h-screen bg-[#0c0c0c] flex">
       {/* Sidebar */}
@@ -306,10 +315,6 @@ const AdvertiserDashboard = () => {
               element={<WebsiteDetails />} 
             />
             <Route 
-              path="order/:websiteId" 
-              element={<OrderPlacement />} 
-            />
-            <Route 
               path="orders" 
               element={<OrderManagement />} 
             />
@@ -318,33 +323,16 @@ const AdvertiserDashboard = () => {
               element={<OrderDetails />} 
             />
             <Route 
-              path="bulk-orders" 
-              element={<BulkOrderManagement />} 
-            />
-            <Route 
               path="messages" 
               element={<Messages />} 
             />
-            <Route 
-              path="analytics" 
-              element={<AdvertiserAnalytics />} 
-            />
-            <Route 
-              path="favorites" 
-              element={<FavoriteWebsites />} 
-            />
+
+
             <Route 
               path="wallet" 
               element={<WalletManagement onBalanceUpdate={fetchWalletBalance} />} 
             />
-            <Route 
-              path="quality" 
-              element={<QualityManagement />} 
-            />
-            <Route 
-              path="quality/:qualityCheckId" 
-              element={<QualityCheckDetail />} 
-            />
+
             <Route 
               path="profile" 
               element={<ProfileSettings />} 
@@ -358,6 +346,20 @@ const AdvertiserDashboard = () => {
             <Route 
               path="projects/details" 
               element={<ProjectsDetailsWrapper />} 
+            />
+            {/* Added Shopping Cart route */}
+            <Route 
+              path="cart" 
+              element={<ShoppingCart />} 
+            />
+            <Route 
+              path="write-own-article/:itemId" 
+              element={<ChooseMyOwnArticle />} 
+            />
+            {/* Added Deposit route */}
+            <Route 
+              path="deposit" 
+              element={<DepositPage />} 
             />
           </Routes>
         </main>

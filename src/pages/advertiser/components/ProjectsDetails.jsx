@@ -1,11 +1,42 @@
-import React, { useState, useRef } from 'react';
-import { ArrowLeft, Edit, BarChart3, Tag, Globe, TrendingUp } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { ArrowLeft, Edit, BarChart3, Tag, Globe, TrendingUp, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { advertiserAPI } from '../../../services/api';
 
 const ProjectsDetails = () => {
   const navigate = useNavigate();
   const chartRef = useRef(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch orders for this project
+  useEffect(() => {
+    fetchProjectOrders();
+  }, []);
+
+  const fetchProjectOrders = async () => {
+    try {
+      setLoading(true);
+      // In a real implementation, we would filter by project ID
+      // For now, we'll fetch all orders as a placeholder
+      const response = await advertiserAPI.getOrders({ limit: 10 });
+      if (response.data) {
+        setOrders(response.data.orders || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch project orders:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const refreshOrders = async () => {
+    setRefreshing(true);
+    await fetchProjectOrders();
+  };
 
   // Chart data
   const visibilityMonths = [
@@ -13,50 +44,6 @@ const ProjectsDetails = () => {
     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
   ];
   const visibilityData = [0.1, 0.2, 0.4, 0.7, 0.6, 0.5, 0.7, 0.95, 0.7, 0.5, 0.4, 0.4];
-
-  // Sample table data
-  const tableData = [
-    {
-      orderId: "#78757",
-      web: "https://mohsin.com",
-      publicationUrl: "https://todosobrewindows.com/software-antivirus-como-elegir-la-proteccion-adecuada/",
-      purchaseDate: "12/10/24",
-      price: "$20",
-      status: "Finished"
-    },
-    {
-      orderId: "#78758",
-      web: "https://mohsin.com",
-      publicationUrl: "https://todosobrewindows.com/software-antivirus-como-elegir-la-proteccion-adecuada/",
-      purchaseDate: "12/10/24",
-      price: "$20",
-      status: "Finished"
-    },
-    {
-      orderId: "#78759",
-      web: "https://mohsin.com",
-      publicationUrl: "https://todosobrewindows.com/software-antivirus-como-elegir-la-proteccion-adecuada/",
-      purchaseDate: "12/10/24",
-      price: "$20",
-      status: "Finished"
-    },
-    {
-      orderId: "#78760",
-      web: "https://mohsin.com",
-      publicationUrl: "https://todosobrewindows.com/software-antivirus-como-elegir-la-proteccion-adecuada/",
-      purchaseDate: "12/10/24",
-      price: "$20",
-      status: "Finished"
-    },
-    {
-      orderId: "#78761",
-      web: "https://mohsin.com",
-      publicationUrl: "https://todosobrewindows.com/software-antivirus-como-elegir-la-proteccion-adecuada/",
-      purchaseDate: "12/10/24",
-      price: "$20",
-      status: "Finished"
-    }
-  ];
 
   // Simple chart component using SVG
   const VisibilityChart = () => {
@@ -150,6 +137,21 @@ const ProjectsDetails = () => {
     </div>
   );
 
+  const getStatusBadge = (status) => {
+    const statusMap = {
+      'pending': { text: 'Pending', class: 'text-yellow-400' },
+      'approved': { text: 'Approved', class: 'text-blue-400' },
+      'in_progress': { text: 'In Progress', class: 'text-purple-400' },
+      'completed': { text: 'Completed', class: 'text-green-400' },
+      'delivered': { text: 'Delivered', class: 'text-green-400' },
+      'cancelled': { text: 'Cancelled', class: 'text-red-400' },
+      'revision_requested': { text: 'Revision Requested', class: 'text-orange-400' }
+    };
+
+    const statusInfo = statusMap[status] || { text: status, class: 'text-gray-400' };
+    return <span className={`font-semibold ${statusInfo.class}`}>{statusInfo.text}</span>;
+  };
+
   return (
     <div className="min-h-screen bg-[#0c0c0c] font-sans">
       <div className="max-w-7xl mx-auto px-4 py-6">
@@ -160,13 +162,23 @@ const ProjectsDetails = () => {
               <h1 className="text-xl font-normal text-[#bff747] mb-2">SEO Optimization Campaign</h1>
               <p className="text-gray-400">Visualize, control and grow your project, all from one place.</p>
             </div>
-            <button 
-              onClick={() => navigate('/advertiser/projects')}
-              className="flex items-center gap-2 bg-[#bff747] text-[#0c0c0c] px-5 py-2 rounded border hover:bg-[#a8e035] transition-colors"
-            >
-              <ArrowLeft size={15} />
-              Back
-            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={refreshOrders}
+                disabled={refreshing}
+                className="flex items-center gap-2 bg-[#1a1a1a] text-[#bff747] px-4 py-2 rounded border border-[#333] hover:bg-[#2a2a2a] transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+              <button 
+                onClick={() => navigate('/advertiser/projects')}
+                className="flex items-center gap-2 bg-[#bff747] text-[#0c0c0c] px-5 py-2 rounded border hover:bg-[#a8e035] transition-colors"
+              >
+                <ArrowLeft size={15} />
+                Back
+              </button>
+            </div>
           </div>
         </div>
 
@@ -311,54 +323,69 @@ const ProjectsDetails = () => {
         {/* Orders Table */}
         <div className="bg-[#1a1a1a] rounded-2xl border border-[#333] overflow-x-auto">
           <div className="p-5">
-            <table className="w-full">
-              <thead>
-                <tr>
-                  <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
-                    Order ID
-                  </th>
-                  <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
-                    Web
-                  </th>
-                  <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
-                    Publication URL
-                  </th>
-                  <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
-                    Purchase Date
-                  </th>
-                  <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
-                    Price
-                  </th>
-                  <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {tableData.map((row, index) => (
-                  <tr key={index}>
-                    <td className="py-4 px-5 text-sm text-gray-300 font-semibold whitespace-nowrap">
-                      {row.orderId}
-                    </td>
-                    <td className="py-4 px-5 text-sm text-gray-300 font-semibold whitespace-nowrap">
-                      {row.web}
-                    </td>
-                    <td className="py-4 px-5 text-sm text-gray-300 font-semibold whitespace-nowrap max-w-xs truncate">
-                      {row.publicationUrl}
-                    </td>
-                    <td className="py-4 px-5 text-sm text-gray-300 font-semibold whitespace-nowrap">
-                      {row.purchaseDate}
-                    </td>
-                    <td className="py-4 px-5 text-sm text-gray-300 font-semibold whitespace-nowrap">
-                      {row.price}
-                    </td>
-                    <td className="py-4 px-5 text-sm text-[#bff747] font-semibold whitespace-nowrap">
-                      {row.status}
-                    </td>
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="text-[#bff747] text-lg font-medium">Project Orders</h3>
+              <p className="text-gray-400 text-sm">{orders.length} orders</p>
+            </div>
+            
+            {loading ? (
+              <div className="flex justify-center items-center h-32">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#bff747]"></div>
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="text-center py-8 text-gray-400">
+                <p>No orders found for this project</p>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
+                      Order ID
+                    </th>
+                    <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
+                      Website
+                    </th>
+                    <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
+                      Publication URL
+                    </th>
+                    <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
+                      Purchase Date
+                    </th>
+                    <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
+                      Price
+                    </th>
+                    <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
+                      Status
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {orders.map((order) => (
+                    <tr key={order._id}>
+                      <td className="py-4 px-5 text-sm text-gray-300 font-semibold whitespace-nowrap">
+                        #{order.orderId}
+                      </td>
+                      <td className="py-4 px-5 text-sm text-gray-300 font-semibold whitespace-nowrap">
+                        {order.website?.domain || 'N/A'}
+                      </td>
+                      <td className="py-4 px-5 text-sm text-gray-300 font-semibold whitespace-nowrap max-w-xs truncate">
+                        {order.targetUrl || 'N/A'}
+                      </td>
+                      <td className="py-4 px-5 text-sm text-gray-300 font-semibold whitespace-nowrap">
+                        {new Date(order.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="py-4 px-5 text-sm text-gray-300 font-semibold whitespace-nowrap">
+                        ${order.totalAmount || 0}
+                      </td>
+                      <td className="py-4 px-5 text-sm whitespace-nowrap">
+                        {getStatusBadge(order.status)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>

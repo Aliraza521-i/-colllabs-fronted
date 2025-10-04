@@ -26,7 +26,7 @@ const WalletManagement = ({ onBalanceUpdate }) => {
       // Fetch balance
       const balanceResponse = await walletAPI.getBalance();
       if (balanceResponse.data) {
-        setBalance(balanceResponse.data.balance || 0);
+        setBalance(balanceResponse.data.data.wallet.balance || 0);
         if (onBalanceUpdate) {
           onBalanceUpdate();
         }
@@ -48,7 +48,7 @@ const WalletManagement = ({ onBalanceUpdate }) => {
     try {
       const response = await walletAPI.addFunds(amount);
       if (response.data) {
-        setBalance(response.data.balance);
+        setBalance(response.data.data.wallet.balance);
         fetchWalletData(); // Refresh transactions
         alert(`Successfully added $${amount} to your wallet!`);
       }

@@ -36,14 +36,9 @@ const AdvertiserSidebar = ({ open, setOpen, walletBalance }) => {
       icon: DocumentTextIcon,
     },
     {
-      name: 'Bulk Orders',
-      href: '/advertiser/bulk-orders',
+      name: 'Shopping Cart',
+      href: '/advertiser/cart',
       icon: ShoppingCartIcon,
-    },
-    {
-      name: 'Quality Checks',
-      href: '/advertiser/quality',
-      icon: DocumentCheckIcon,
     },
     {
       name: 'Messages',
@@ -56,17 +51,8 @@ const AdvertiserSidebar = ({ open, setOpen, walletBalance }) => {
       href: '/advertiser/projects',
       icon: FolderIcon,
     },
-    // Removed campaigns navigation item since that component was removed
-    {
-      name: 'Analytics',
-      href: '/advertiser/analytics',
-      icon: ChartBarIcon,
-    },
-    {
-      name: 'Favorites',
-      href: '/advertiser/favorites',
-      icon: HeartIcon,
-    },
+
+
     {
       name: 'Wallet',
       href: '/advertiser/wallet',
@@ -163,7 +149,7 @@ const AdvertiserSidebar = ({ open, setOpen, walletBalance }) => {
               })}
             </nav>
 
-            {/* Quick Actions */}
+            {/* Quick Actions - Removed Place New Order button */}
             <div className="flex-shrink-0 flex border-t border-[#bff747]/30 p-4">
               <div className="w-full">
                 <NavLink
@@ -171,7 +157,7 @@ const AdvertiserSidebar = ({ open, setOpen, walletBalance }) => {
                   className="w-full flex items-center justify-center px-4 py-2 bg-[#bff747] text-[#0c0c0c] text-sm font-medium rounded-md hover:bg-[#a8e035] transition-colors"
                 >
                   <ShoppingCartIcon className="h-4 w-4 mr-2 text-[#0c0c0c]" />
-                  Place New Order
+                  Browse Websites
                 </NavLink>
               </div>
             </div>
@@ -246,7 +232,7 @@ const AdvertiserSidebar = ({ open, setOpen, walletBalance }) => {
             })}
           </nav>
 
-          {/* Mobile quick action */}
+          {/* Mobile quick action - Removed Place New Order button */}
           <div className="p-4 border-t border-[#bff747]/30">
             <NavLink
               to="/advertiser/browse"
@@ -254,7 +240,7 @@ const AdvertiserSidebar = ({ open, setOpen, walletBalance }) => {
               className="w-full flex items-center justify-center px-4 py-2 bg-[#bff747] text-[#0c0c0c] text-sm font-medium rounded-md hover:bg-[#a8e035] transition-colors"
             >
               <ShoppingCartIcon className="h-4 w-4 mr-2 text-[#0c0c0c]" />
-              Place New Order
+              Browse Websites
             </NavLink>
           </div>
         </div>
