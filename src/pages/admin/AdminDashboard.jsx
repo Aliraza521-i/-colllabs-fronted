@@ -6,11 +6,11 @@ import AdminDashboardHome from './components/AdminDashboardHome';
 import UserManagement from './components/UserManagement';
 import WebsiteApproval from './components/WebsiteApproval';
 import AllWebsites from './components/AllWebsites';
+import WebsiteMetrics from './components/WebsiteMetrics';
 import OrderManagement from './components/OrderManagement';
 import FinancialManagement from './components/FinancialManagement';
 import Analytics from './components/Analytics';
 import SystemSettings from './components/SystemSettings';
-import SupportTickets from './components/SupportTickets';
 import { useAuth } from '../../contexts/AuthContext';
 import { adminAPI } from '../../services/api';
 import ChatPage from '../../pages/ChatPage';
@@ -165,6 +165,10 @@ const AdminDashboard = () => {
               element={<AllWebsites />} 
             />
             <Route 
+              path="website-metrics" 
+              element={<WebsiteMetrics />} 
+            />
+            <Route 
               path="orders" 
               element={<OrderManagement />} 
             />
@@ -184,10 +188,7 @@ const AdminDashboard = () => {
               path="settings" 
               element={<SystemSettings />} 
             />
-            <Route 
-              path="support" 
-              element={<SupportTickets />} 
-            />
+           
             {/* Catch-all route to render dashboard home for unmatched paths */}
             <Route 
               path="*" 

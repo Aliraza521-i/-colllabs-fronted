@@ -178,6 +178,7 @@ export const adminAPI = {
   getAllWebsites: (params) => api.get('/admin/websites', { params }), // Add this line
   reviewWebsite: (websiteId, data) => api.put(`/admin/websites/${websiteId}/review`, data),
   updateWebsiteVerificationSettings: (websiteId, data) => api.put(`/admin/websites/${websiteId}/verification-settings`, data),
+  updateWebsiteMetrics: (websiteId, data) => api.put(`/admin/websites/${websiteId}/metrics`, data), // Add this line
   approveWebsite: (websiteId, data) => api.put(`/admin/websites/${websiteId}/approve`, data),
   rejectWebsite: (websiteId, data) => api.put(`/admin/websites/${websiteId}/reject`, data),
   pauseWebsite: (websiteId) => api.put(`/admin/websites/${websiteId}/pause`),

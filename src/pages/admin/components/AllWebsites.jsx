@@ -11,10 +11,8 @@ import {
   ChevronRightIcon,
   PauseIcon,
   TrashIcon,
-  ArrowTopRightOnSquareIcon,
-  TagIcon,
-  CurrencyDollarIcon,
-  ChartBarIcon
+
+  PencilIcon
 } from '@heroicons/react/24/outline';
 import { adminAPI } from '../../../services/api';
 import { Chart } from 'chart.js/auto';
@@ -31,6 +29,8 @@ const AllWebsites = () => {
   const [showModal, setShowModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('details');
+  const [showMetricsForm, setShowMetricsForm] = useState(false);
+  const [metricsData, setMetricsData] = useState({});
 
   const trafficChartRef = useRef(null);
   const visibilityChartRef = useRef(null);
@@ -47,6 +47,8 @@ const AllWebsites = () => {
     if (showModal && selectedWebsite) {
       // Initialize charts when modal opens
       initializeCharts();
+      // Initialize metrics data
+      setMetricsData(selectedWebsite.metrics || {});
     }
 
     // Cleanup charts when modal closes
@@ -220,6 +222,41 @@ const AllWebsites = () => {
     }
   };
 
+  const handleMetricsChange = (field, value) => {
+    setMetricsData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveMetrics = async () => {
+    try {
+      setActionLoading(true);
+      const response = await adminAPI.updateWebsiteMetrics(selectedWebsite._id, { metrics: metricsData });
+      
+      if (response.data && response.data.ok) {
+        // Update the selected website with new metrics
+        setSelectedWebsite(prev => ({
+          ...prev,
+          metrics: metricsData
+        }));
+        
+        // Refresh the websites list
+        fetchWebsites();
+        
+        // Close the metrics form
+        setShowMetricsForm(false);
+        
+        alert('SEO metrics updated successfully');
+      }
+    } catch (error) {
+      console.error('Failed to update SEO metrics:', error);
+      alert('Failed to update SEO metrics');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const getStatusBadge = (status) => {
     const badges = {
       draft: 'bg-gray-100 text-gray-800',
@@ -326,6 +363,267 @@ const AllWebsites = () => {
       onAction(website._id, 'reject', { reason: rejectionReason });
     };
 
+    // SEO Metrics Form Component
+    const SEOMetricsForm = () => (
+      <div className="space-y-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="text-gray-800 text-lg font-medium mb-4">Moz Metrics</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Domain Authority (DA)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.domainAuthority || metricsData.da || ''}
+                onChange={(e) => handleMetricsChange('domainAuthority', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Page Authority (PA)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.pageAuthority || ''}
+                onChange={(e) => handleMetricsChange('pageAuthority', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Spam Score (SS)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.spamScore || ''}
+                onChange={(e) => handleMetricsChange('spamScore', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Domain Age</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.domainAge || ''}
+                onChange={(e) => handleMetricsChange('domainAge', parseInt(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="text-gray-800 text-lg font-medium mb-4">Ahrefs Metrics</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Domain Rating (DR)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.ahrefsDomainRating || metricsData.dr || ''}
+                onChange={(e) => handleMetricsChange('ahrefsDomainRating', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">URL Rating (UR)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.urlRating || ''}
+                onChange={(e) => handleMetricsChange('urlRating', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Ahrefs Traffic</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.ahrefsTraffic || ''}
+                onChange={(e) => handleMetricsChange('ahrefsTraffic', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Keywords</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.ahrefsKeywords || ''}
+                onChange={(e) => handleMetricsChange('ahrefsKeywords', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Referring Domains</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.referringDomains || ''}
+                onChange={(e) => handleMetricsChange('referringDomains', parseInt(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="text-gray-800 text-lg font-medium mb-4">Semrush Metrics</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Authority Score (AS)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.semrushAuthorityScore || ''}
+                onChange={(e) => handleMetricsChange('semrushAuthorityScore', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Semrush Traffic</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.semrushTraffic || ''}
+                onChange={(e) => handleMetricsChange('semrushTraffic', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Keywords</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.semrushKeywords || ''}
+                onChange={(e) => handleMetricsChange('semrushKeywords', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Referring Domains</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.semrushReferringDomains || ''}
+                onChange={(e) => handleMetricsChange('semrushReferringDomains', parseInt(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="text-gray-800 text-lg font-medium mb-4">Majestic Metrics</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Trust Flow (TF)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.majesticTrustFlow || ''}
+                onChange={(e) => handleMetricsChange('majesticTrustFlow', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Citation Flow (CF)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.majesticCitationFlow || ''}
+                onChange={(e) => handleMetricsChange('majesticCitationFlow', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Total Index</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.majesticTotalIndex || ''}
+                onChange={(e) => handleMetricsChange('majesticTotalIndex', parseInt(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 className="text-gray-800 text-lg font-medium mb-4">Additional Metrics</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Monthly Traffic</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.monthlyTraffic || ''}
+                onChange={(e) => handleMetricsChange('monthlyTraffic', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Organic Traffic</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.organicTraffic || ''}
+                onChange={(e) => handleMetricsChange('organicTraffic', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">External Links</label>
+              <input
+                type="number"
+                min="0"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.externalLinks || ''}
+                onChange={(e) => handleMetricsChange('externalLinks', parseInt(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Moz Rank</label>
+              <input
+                type="number"
+                min="0"
+                max="10"
+                step="0.1"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={metricsData.mozRank || ''}
+                onChange={(e) => handleMetricsChange('mozRank', parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex justify-end space-x-3">
+          <button
+            onClick={() => setShowMetricsForm(false)}
+            className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSaveMetrics}
+            disabled={actionLoading}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+          >
+            {actionLoading ? 'Saving...' : 'Save Metrics'}
+          </button>
+        </div>
+      </div>
+    );
+
     return (
       <div className="fixed inset-0 z-50 overflow-y-auto">
         <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -351,7 +649,7 @@ const AllWebsites = () => {
                     {/* Tab Navigation */}
                     <div className="border-b border-gray-200 mb-6">
                       <nav className="-mb-px flex space-x-8">
-                        {['details', 'publishing', 'pricing', 'seo', 'metrics'].map((tab) => (
+                        {['details', 'publishing', 'pricing', 'seo'].map((tab) => (
                           <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
@@ -691,111 +989,110 @@ const AllWebsites = () => {
                       </div>
                     )}
 
-                    {activeTab === 'metrics' && (
-                      <div className="space-y-6">
-                        {/* Charts */}
-                        <div className="space-y-8 mb-8">
-                          <div className="bg-white rounded-xl border border-orange-500 p-6">
-                            <h3 className="text-orange-600 text-lg font-medium mb-4">Organic Website Traffic</h3>
-                            <div className="h-80 w-full">
-                              <canvas ref={trafficChartRef}></canvas>
-                            </div>
-                          </div>
-
-                          <div className="bg-white rounded-xl border border-orange-500 p-6">
-                            <h3 className="text-orange-600 text-lg font-medium mb-4">Visibility Index</h3>
-                            <div className="h-80 w-full">
-                              <canvas ref={visibilityChartRef}></canvas>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    
 
                       {activeTab === 'seo' && (
                         <div className="space-y-6">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                            <div className="bg-gray-50 p-4 rounded-lg">
-                              <h4 className="text-sm font-medium text-gray-500">Main Language</h4>
-                              <p className="mt-1 text-sm text-gray-900">{website.mainLanguage || "Not specified"}</p>
-                            </div>
-                            <div className="bg-gray-50 p-4 rounded-lg">
-                              <h4 className="text-sm font-medium text-gray-500">Country</h4>
-                              <p className="mt-1 text-sm text-gray-900">{website.country || "Not specified"}</p>
-                            </div>
-                          </div>
+                          {!showMetricsForm ? (
+                            <>
+                              <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-gray-800 text-lg font-medium">SEO Metrics</h3>
+                                <button
+                                  onClick={() => setShowMetricsForm(true)}
+                                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                                >
+                                  <PencilIcon className="h-4 w-4 mr-1" />
+                                  Edit Metrics
+                                </button>
+                              </div>
 
-                          <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                            <h4 className="text-sm font-medium text-gray-500">Keywords</h4>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {website.keywords && website.keywords.length > 0 ? (
-                                website.keywords.map((keyword, index) => (
-                                  <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                    {keyword}
-                                  </span>
-                                ))
-                              ) : (
-                                <p className="text-sm text-gray-500">No keywords specified</p>
-                              )}
-                            </div>
-                          </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                <div className="bg-gray-50 p-4 rounded-lg">
+                                  <h4 className="text-sm font-medium text-gray-500">Main Language</h4>
+                                  <p className="mt-1 text-sm text-gray-900">{website.mainLanguage || "Not specified"}</p>
+                                </div>
+                                <div className="bg-gray-50 p-4 rounded-lg">
+                                  <h4 className="text-sm font-medium text-gray-500">Country</h4>
+                                  <p className="mt-1 text-sm text-gray-900">{website.country || "Not specified"}</p>
+                                </div>
+                              </div>
 
-                          <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                            <h4 className="text-sm font-medium text-gray-500">Advertising Requirements</h4>
-                            <p className="mt-1 text-sm text-gray-900">{website.advertisingRequirements || "Not specified"}</p>
-                          </div>
+                              <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                                <h4 className="text-sm font-medium text-gray-500">Keywords</h4>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {website.keywords && website.keywords.length > 0 ? (
+                                    website.keywords.map((keyword, index) => (
+                                      <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        {keyword}
+                                      </span>
+                                    ))
+                                  ) : (
+                                    <p className="text-sm text-gray-500">No keywords specified</p>
+                                  )}
+                                </div>
+                              </div>
 
-                          {/* SEO Metrics */}
-                          <div className="flex items-center gap-3 mb-6">
-                            <svg className="w-5 h-5 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                              <path d="M7 16l3-3 3 3 4-4" />
-                            </svg>
-                            <h2 className="text-indigo-600 text-lg font-bold">SEO Metrics</h2>
-                          </div>
+                              <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                                <h4 className="text-sm font-medium text-gray-500">Advertising Requirements</h4>
+                                <p className="mt-1 text-sm text-gray-900">{website.advertisingRequirements || "Not specified"}</p>
+                              </div>
 
-                          <div className="space-y-4 mb-8">
-                            <MetricCard 
-                              logo="https://via.placeholder.com/80x60/1976d2/ffffff?text=MOZ"
-                              metrics={[
-                                { title: "DA", value: website.metrics?.domainAuthority || "N/A" },
-                                { title: "DR", value: "40" },
-                                { title: "PA", value: "28" },
-                                { title: "Moz Links", value: "0.239%" },
-                                { title: "Moz Ranks", value: "750" },
-                                { title: "Traffic", value: website.metrics?.monthlyTraffic ? website.metrics.monthlyTraffic.toLocaleString() : "N/A" }
-                              ]}
-                            />
+                              {/* SEO Metrics Display */}
+                              <div className="space-y-4 mb-8">
+                                <MetricCard 
+                                  logo="https://via.placeholder.com/80x60/1976d2/ffffff?text=MOZ"
+                                  metrics={[
+                                    { title: "DA", value: website.metrics?.domainAuthority || website.metrics?.da || "N/A" },
+                                    { title: "PA", value: website.metrics?.pageAuthority || "N/A" },
+                                    { title: "SS", value: website.metrics?.spamScore || "N/A" },
+                                    { title: "Domain Age", value: website.metrics?.domainAge || "N/A" }
+                                  ]}
+                                />
 
-                            <MetricCard 
-                              logo="https://via.placeholder.com/80x60/ff5722/ffffff?text=AHREFS"
-                              metrics={[
-                                { title: "DA", value: "13" },
-                                { title: "DR", value: website.metrics?.domainRating || "N/A" },
-                                { title: "BL", value: "34" },
-                                { title: "OBL", value: "10" },
-                                { title: "Organic Traffic", value: website.metrics?.organicTraffic ? website.metrics.organicTraffic.toLocaleString() : "N/A" },
-                                { title: "Keywords", value: website.metrics?.keywords || "N/A" }
-                              ]}
-                            />
+                                <MetricCard 
+                                  logo="https://via.placeholder.com/80x60/ff5722/ffffff?text=AHREFS"
+                                  metrics={[
+                                    { title: "DR", value: website.metrics?.ahrefsDomainRating || website.metrics?.dr || "N/A" },
+                                    { title: "UR", value: website.metrics?.urlRating || "N/A" },
+                                    { title: "Traffic", value: website.metrics?.ahrefsTraffic ? website.metrics.ahrefsTraffic.toLocaleString() : "N/A" },
+                                    { title: "Keywords", value: website.metrics?.ahrefsKeywords || "N/A" },
+                                    { title: "Referring Domains", value: website.metrics?.referringDomains || "N/A" }
+                                  ]}
+                                />
 
-                            <MetricCard 
-                              logo="https://via.placeholder.com/80x60/9c27b0/ffffff?text=SISTRIX"
-                              metrics={[
-                                { title: "CF", value: "11" },
-                                { title: "TF", value: "9" },
-                                { title: "Majestic Links", value: "45" },
-                                { title: "Majestic RD", value: "19" }
-                              ]}
-                            />
+                                <MetricCard 
+                                  logo="https://via.placeholder.com/80x60/4caf50/ffffff?text=SEMRUSH"
+                                  metrics={[
+                                    { title: "AS", value: website.metrics?.semrushAuthorityScore || "N/A" },
+                                    { title: "Traffic", value: website.metrics?.semrushTraffic ? website.metrics.semrushTraffic.toLocaleString() : "N/A" },
+                                    { title: "Keywords", value: website.metrics?.semrushKeywords || "N/A" },
+                                    { title: "Referring Domains", value: website.metrics?.semrushReferringDomains || "N/A" }
+                                  ]}
+                                />
 
-                            <MetricCard 
-                              logo="https://via.placeholder.com/80x60/607d8b/ffffff?text=MAJESTIC"
-                              metrics={[
-                                { title: "Visibility Index", value: website.metrics?.visibilityIndex || "N/A" }
-                              ]}
-                            />
-                          </div>
+                                <MetricCard 
+                                  logo="https://via.placeholder.com/80x60/9c27b0/ffffff?text=MAJESTIC"
+                                  metrics={[
+                                    { title: "TF", value: website.metrics?.majesticTrustFlow || "N/A" },
+                                    { title: "CF", value: website.metrics?.majesticCitationFlow || "N/A" },
+                                    { title: "Total Index", value: website.metrics?.majesticTotalIndex || "N/A" }
+                                  ]}
+                                />
+
+                                <MetricCard 
+                                  logo="https://via.placeholder.com/80x60/607d8b/ffffff?text=OTHER"
+                                  metrics={[
+                                    { title: "Monthly Traffic", value: website.metrics?.monthlyTraffic ? website.metrics.monthlyTraffic.toLocaleString() : "N/A" },
+                                    { title: "Organic Traffic", value: website.metrics?.organicTraffic ? website.metrics.organicTraffic.toLocaleString() : "N/A" },
+                                    { title: "External Links", value: website.metrics?.externalLinks || "N/A" },
+                                    { title: "Moz Rank", value: website.metrics?.mozRank || "N/A" }
+                                  ]}
+                                />
+                              </div>
+                            </>
+                          ) : (
+                            <SEOMetricsForm />
+                          )}
                         </div>
                       )}
                     </div>
@@ -1169,6 +1466,7 @@ const AllWebsites = () => {
             setShowModal(false);
             setSelectedWebsite(null);
             setActiveTab('details');
+            setShowMetricsForm(false);
           }}
           onAction={handleWebsiteAction}
           actionLoading={actionLoading}

@@ -53,6 +53,12 @@ const AdminSidebar = ({ open, setOpen, notifications }) => {
       badge: 0
     },
     {
+      name: 'Website Metrics',
+      href: '/admin/website-metrics',
+      icon: ChartBarIcon,
+      badge: 0
+    },
+    {
       name: 'Order Management',
       href: '/admin/orders',
       icon: DocumentTextIcon,
@@ -75,12 +81,7 @@ const AdminSidebar = ({ open, setOpen, notifications }) => {
       href: '/admin/analytics',
       icon: ChartBarIcon
     },
-    {
-      name: 'Support Tickets',
-      href: '/admin/support',
-      icon: ChatBubbleLeftRightIcon,
-      badge: getNotificationCount('support_ticket')
-    },
+    
     {
       name: 'System Settings',
       href: '/admin/settings',

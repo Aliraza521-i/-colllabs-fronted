@@ -8,8 +8,6 @@ import {
   ChartBarIcon, 
   ClockIcon, 
   StarIcon,
-  HeartIcon as HeartOutlineIcon,
-  HeartIcon as HeartSolidIcon,
   ChatBubbleLeftRightIcon,
   ArrowLeftIcon,
   LinkIcon,
@@ -25,7 +23,6 @@ import {
 const WebsiteDetailsView = ({ website }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(false);
   const [contactLoading, setContactLoading] = useState(false);
   const trafficChartRef = useRef(null);
@@ -43,148 +40,7 @@ const WebsiteDetailsView = ({ website }) => {
     );
   }
 
-  useEffect(() => {
-    // Initialize favorite status if website data is available
-    setIsFavorite(website.isFavorite || false);
-    
-    // Load Chart.js dynamically for traffic charts
-    const loadCharts = async () => {
-      try {
-        const ChartJS = await import('chart.js');
-        
-        // Register Chart.js components
-        ChartJS.Chart.register(
-          ChartJS.CategoryScale,
-          ChartJS.LinearScale,
-          ChartJS.PointElement,
-          ChartJS.LineElement,
-          ChartJS.Title,
-          ChartJS.Tooltip,
-          ChartJS.Legend
-        );
-
-        // Traffic chart data (static for now)
-        const trafficMonths = [
-          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-        ];
-        const trafficData = [1200, 1900, 1500, 2200, 1800, 2500, 2100, 2800, 2400, 3000, 2700, 3200];
-
-        // Visibility chart data (static for now)
-        const visibilityMonths = [
-          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-        ];
-        const visibilityData = [0.4, 0.5, 0.55, 0.6, 0.65, 0.68, 0.7, 0.72, 0.75, 0.78, 0.8, 0.82];
-
-        const commonOptions = {
-          responsive: true,
-          maintainAspectRatio: false,
-          elements: {
-            line: { tension: 0.4 },
-            point: { radius: 0 },
-          },
-          scales: {
-            x: {
-              grid: { display: false, color: "#2a2a2a" },
-              ticks: { font: { size: 10 }, color: "#bff747" },
-            },
-            y: {
-              grid: { color: "#2a2a2a", drawBorder: false },
-              beginAtZero: true,
-              ticks: { color: "#bff747" },
-            },
-          },
-          plugins: { 
-            legend: { display: false },
-            tooltip: {
-              titleColor: "#bff747",
-              bodyColor: "#bff747",
-              backgroundColor: "#0c0c0c"
-            }
-          },
-        };
-
-        // Create traffic chart
-        if (trafficChartRef.current) {
-          const ctx = trafficChartRef.current.getContext('2d');
-          new ChartJS.Chart(ctx, {
-            type: 'line',
-            data: {
-              labels: trafficMonths,
-              datasets: [{
-                data: trafficData,
-                borderColor: "#bff747",
-                backgroundColor: "rgba(191, 247, 71, 0.1)",
-                borderWidth: 2,
-                fill: true,
-              }],
-            },
-            options: {
-              ...commonOptions,
-              scales: {
-                ...commonOptions.scales,
-                y: {
-                  ...commonOptions.scales.y,
-                  max: 3500,
-                  ticks: { stepSize: 500, color: "#bff747" },
-                },
-              },
-            },
-          });
-        }
-
-        // Create visibility chart
-        if (visibilityChartRef.current) {
-          const ctx = visibilityChartRef.current.getContext('2d');
-          new ChartJS.Chart(ctx, {
-            type: 'line',
-            data: {
-              labels: visibilityMonths,
-              datasets: [{
-                data: visibilityData,
-                borderColor: "#bff747",
-                backgroundColor: "rgba(191, 247, 71, 0.1)",
-                borderWidth: 2,
-                fill: true,
-              }],
-            },
-            options: {
-              ...commonOptions,
-              scales: {
-                ...commonOptions.scales,
-                y: {
-                  ...commonOptions.scales.y,
-                  max: 1.0,
-                  ticks: { stepSize: 0.2, color: "#bff747" },
-                },
-              },
-            },
-          });
-        }
-      } catch (error) {
-        console.error('Error loading Chart.js:', error);
-      }
-    };
-
-    loadCharts();
-  }, [website]);
-
-  const handleAddToFavorites = async () => {
-    try {
-      setLoading(true);
-      if (isFavorite) {
-        await advertiserAPI.removeFromFavorites(website._id);
-      } else {
-        await advertiserAPI.addToFavorites(website._id);
-      }
-      setIsFavorite(!isFavorite);
-    } catch (error) {
-      console.error('Failed to update favorites:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  
 
   const handleContactPublisher = async () => {
     if (!user) {
@@ -227,71 +83,6 @@ const WebsiteDetailsView = ({ website }) => {
     return rate.toFixed(1);
   };
 
-  // Render SEO metrics cards
-  const renderSEOMetrics = () => {
-    const metrics = [
-      {
-        provider: "Moz",
-        icon: "M",
-        metrics: [
-          { label: "DA", value: website.metrics?.domainAuthority || "N/A" },
-          { label: "PA", value: website.metrics?.pageAuthority || "N/A" },
-          { label: "SS", value: website.metrics?.spamScore || "N/A" },
-          { label: "Domain Age", value: website.metrics?.domainAge || "N/A" }
-        ]
-      },
-      {
-        provider: "Ahrefs",
-        icon: "A",
-        metrics: [
-          { label: "DR", value: website.metrics?.ahrefsDomainRating || "N/A" },
-          { label: "UR", value: website.metrics?.urlRating || "N/A" },
-          { label: "Traffic", value: website.metrics?.ahrefsTraffic ? website.metrics.ahrefsTraffic.toLocaleString() : "N/A" },
-          { label: "Keywords", value: website.metrics?.ahrefsKeywords || "N/A" },
-          { label: "Referring Domains", value: website.metrics?.referringDomains || "N/A" }
-        ]
-      },
-      {
-        provider: "Semrush",
-        icon: "S",
-        metrics: [
-          { label: "AS", value: website.metrics?.semrushAuthorityScore || "N/A" },
-          { label: "Traffic", value: website.metrics?.semrushTraffic ? website.metrics.semrushTraffic.toLocaleString() : "N/A" },
-          { label: "Keywords", value: website.metrics?.semrushKeywords || "N/A" },
-          { label: "Referring Domains", value: website.metrics?.semrushReferringDomains || "N/A" }
-        ]
-      },
-      {
-        provider: "Majestic",
-        icon: "Mj",
-        metrics: [
-          { label: "TF", value: website.metrics?.majesticTrustFlow || "N/A" },
-          { label: "CF", value: website.metrics?.majesticCitationFlow || "N/A" },
-          { label: "Total Index", value: website.metrics?.majesticTotalIndex || "N/A" }
-        ]
-      }
-    ];
-
-    return metrics.map((provider, index) => (
-      <div key={index} className="bg-[#2a2a2a] border border-[#bff747]/30 rounded-lg p-4 flex-1 min-w-[200px]">
-        <div className="flex items-center mb-3">
-          <div className="w-8 h-8 rounded-full bg-[#bff747]/20 flex items-center justify-center text-[#bff747] font-bold text-sm">
-            {provider.icon}
-          </div>
-          <h3 className="ml-2 font-semibold text-[#bff747]">{provider.provider}</h3>
-        </div>
-        <div className="space-y-2">
-          {provider.metrics.map((metric, idx) => (
-            <div key={idx} className="flex justify-between items-center py-1 border-b border-[#bff747]/10 last:border-b-0">
-              <div className="text-xs text-gray-400">{metric.label}</div>
-              <div className="font-semibold text-[#bff747] text-sm">{metric.value}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    ));
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Back Button */}
@@ -323,25 +114,13 @@ const WebsiteDetailsView = ({ website }) => {
               </div>
               <p className="mt-2 text-gray-300">{website.siteDescription}</p>
             </div>
-            <div className="mt-4 md:mt-0 flex space-x-3">
+            <div className="mt-4 md:mt-0">
               <button 
                 onClick={() => navigate(`/advertiser/order/${website._id}`)}
                 className="bg-[#bff747] hover:bg-[#a8e035] text-[#0c0c0c] font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center"
               >
                 <CurrencyDollarIcon className="h-5 w-5 mr-2" />
                 Place Order
-              </button>
-              <button 
-                onClick={handleAddToFavorites}
-                disabled={loading}
-                className="bg-[#2a2a2a] hover:bg-[#3a3a3a] text-[#bff747] font-medium py-2 px-4 rounded-lg transition duration-200 flex items-center disabled:opacity-50 border border-[#bff747]/30"
-              >
-                {isFavorite ? (
-                  <HeartSolidIcon className="h-5 w-5 text-red-400 mr-2" />
-                ) : (
-                  <HeartOutlineIcon className="h-5 w-5 mr-2" />
-                )}
-                {isFavorite ? 'Favorited' : 'Add to Favorites'}
               </button>
             </div>
           </div>
@@ -519,15 +298,15 @@ const WebsiteDetailsView = ({ website }) => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
                     <div className="text-xs text-gray-400">DA</div>
-                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.domainAuthority || "N/A"}</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.domainAuthority || website.metrics?.da || "N/A"}</div>
                   </div>
                   <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
                     <div className="text-xs text-gray-400">PA</div>
-                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.pageAuthority || "N/A"}</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.pageAuthority || website.metrics?.pa || "N/A"}</div>
                   </div>
                   <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
                     <div className="text-xs text-gray-400">SS</div>
-                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.spamScore || "N/A"}</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.spamScore || website.metrics?.ss || "N/A"}</div>
                   </div>
                   <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
                     <div className="text-xs text-gray-400">Domain Age</div>
@@ -547,11 +326,11 @@ const WebsiteDetailsView = ({ website }) => {
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
                     <div className="text-xs text-gray-400">DR</div>
-                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.ahrefsDomainRating || "N/A"}</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.ahrefsDomainRating || website.metrics?.dr || "N/A"}</div>
                   </div>
                   <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
                     <div className="text-xs text-gray-400">UR</div>
-                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.urlRating || "N/A"}</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.urlRating || website.metrics?.ur || "N/A"}</div>
                   </div>
                   <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
                     <div className="text-xs text-gray-400">Traffic</div>
@@ -607,11 +386,11 @@ const WebsiteDetailsView = ({ website }) => {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
                     <div className="text-xs text-gray-400">TF</div>
-                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.majesticTrustFlow || "N/A"}</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.majesticTrustFlow || website.metrics?.tf || "N/A"}</div>
                   </div>
                   <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
                     <div className="text-xs text-gray-400">CF</div>
-                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.majesticCitationFlow || "N/A"}</div>
+                    <div className="font-semibold text-[#bff747] text-lg">{website.metrics?.majesticCitationFlow || website.metrics?.cf || "N/A"}</div>
                   </div>
                   <div className="flex flex-col items-center p-3 bg-[#1a1a1a] rounded border border-[#bff747]/20">
                     <div className="text-xs text-gray-400">Total Index</div>
@@ -619,25 +398,8 @@ const WebsiteDetailsView = ({ website }) => {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Traffic Charts */}
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold text-[#bff747] mb-4">Traffic Analytics</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-[#2a2a2a] border border-[#bff747]/30 rounded-lg p-4">
-                <h3 className="font-medium text-[#bff747] mb-3">Organic Traffic</h3>
-                <div className="h-64">
-                  <canvas ref={trafficChartRef}></canvas>
-                </div>
-              </div>
-              <div className="bg-[#2a2a2a] border border-[#bff747]/30 rounded-lg p-4">
-                <h3 className="font-medium text-[#bff747] mb-3">Visibility Index</h3>
-                <div className="h-64">
-                  <canvas ref={visibilityChartRef}></canvas>
-                </div>
-              </div>
+              
+            
             </div>
           </div>
 

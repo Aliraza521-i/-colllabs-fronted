@@ -1,22 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
   HomeIcon,
   GlobeAltIcon,
   DocumentTextIcon,
   ShoppingCartIcon,
-  ChartBarIcon,
-  HeartIcon,
   CurrencyDollarIcon,
   ChatBubbleLeftRightIcon,
   XMarkIcon,
   FolderIcon,
-  // Removed StarIcon for campaigns since that component was removed
-  DocumentCheckIcon
+  ChevronLeftIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline';
 
 const AdvertiserSidebar = ({ open, setOpen, walletBalance }) => {
   const location = useLocation();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const navigation = [
     {
@@ -45,14 +44,11 @@ const AdvertiserSidebar = ({ open, setOpen, walletBalance }) => {
       href: '/advertiser/messages',
       icon: ChatBubbleLeftRightIcon,
     },
-    // Added My Projects navigation item
     {
       name: 'My Projects',
       href: '/advertiser/projects',
       icon: FolderIcon,
     },
-
-
     {
       name: 'Wallet',
       href: '/advertiser/wallet',
@@ -74,14 +70,18 @@ const AdvertiserSidebar = ({ open, setOpen, walletBalance }) => {
     }).format(balance || 0);
   };
 
+  const toggleSidebar = () => {
+    setIsCollapsed(!isCollapsed);
+  };
+
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex lg:flex-shrink-0">
-        <div className="flex flex-col w-64">
-          <div className="flex flex-col flex-grow bg-[#0c0c0c] border-r border-[#bff747]/30 pt-5 pb-4 overflow-y-auto">
-            {/* Logo */}
-            <div className="flex items-center flex-shrink-0 px-4">
+      <div className={`hidden lg:flex lg:flex-shrink-0 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
+        <div className="flex flex-col h-screen bg-[#0c0c0c] border-r border-[#bff747]/30">
+          {/* Logo and Collapse Button */}
+          <div className="flex items-center justify-between px-4 pt-5 pb-4 border-b border-[#bff747]/30">
+            {!isCollapsed ? (
               <div className="flex items-center">
                 <div className="flex-shrink-0">
                   <div className="w-8 h-8 bg-[#bff747] rounded-lg flex items-center justify-center">
@@ -94,47 +94,48 @@ const AdvertiserSidebar = ({ open, setOpen, walletBalance }) => {
                   </h2>
                 </div>
               </div>
-            </div>
-
-            {/* Wallet Balance Card */}
-            <div className="mx-4 mt-6 p-4 bg-[#1a1a1a] border border-[#bff747]/30 rounded-lg text-[#bff747]">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm opacity-90">Wallet Balance</p>
-                  <p className="text-xl font-bold">{formatBalance(walletBalance)}</p>
+            ) : (
+              <div className="flex items-center justify-center w-full">
+                <div className="w-8 h-8 bg-[#bff747] rounded-lg flex items-center justify-center">
+                  <span className="text-[#0c0c0c] font-bold text-sm">GP</span>
                 </div>
-                <CurrencyDollarIcon className="h-8 w-8 opacity-80 text-[#bff747]" />
               </div>
-              <NavLink
-                to="/advertiser/wallet"
-                className="mt-2 inline-flex items-center text-sm text-[#0c0c0c] bg-[#bff747] px-3 py-1 rounded-md hover:bg-[#a8e035] transition-colors"
-              >
-                Manage Funds
-              </NavLink>
-            </div>
+            )}
+            <button 
+              onClick={toggleSidebar}
+              className="p-1 rounded-md text-[#bff747] hover:text-[#a8e035] hover:bg-[#1a1a1a]"
+            >
+              {isCollapsed ? (
+                <ChevronRightIcon className="h-5 w-5" />
+              ) : (
+                <ChevronLeftIcon className="h-5 w-5" />
+              )}
+            </button>
+          </div>
 
-            {/* Navigation */}
-            <nav className="mt-8 flex-1 px-2 space-y-1">
-              {navigation.map((item) => {
-                const isActive = isActivePath(item.href, item.end);
-                // Safety check for icon component
-                const IconComponent = item.icon && typeof item.icon === 'function' ? item.icon : HomeIcon;
-                return (
-                  <NavLink
-                    key={item.name}
-                    to={item.href}
-                    className={`group flex items-center px-2 py-3 text-sm font-medium rounded-md transition-colors ${
-                      isActive
-                        ? 'bg-[#bff747] text-[#0c0c0c]'
-                        : 'text-gray-300 hover:bg-[#1a1a1a] hover:text-[#bff747]'
+          {/* Navigation */}
+          <nav className="mt-6 flex-1 px-2 space-y-1 overflow-y-auto">
+            {navigation.map((item) => {
+              const isActive = isActivePath(item.href, item.end);
+              const IconComponent = item.icon && typeof item.icon === 'function' ? item.icon : HomeIcon;
+              
+              return (
+                <NavLink
+                  key={item.name}
+                  to={item.href}
+                  className={`group flex items-center px-2 py-3 text-sm font-medium rounded-md transition-colors ${
+                    isActive
+                      ? 'bg-[#bff747] text-[#0c0c0c]'
+                      : 'text-gray-300 hover:bg-[#1a1a1a] hover:text-[#bff747]'
+                  }`}
+                >
+                  <IconComponent
+                    className={`flex-shrink-0 h-5 w-5 ${
+                      isActive ? 'text-[#0c0c0c]' : 'text-gray-400 group-hover:text-[#bff747]'
                     }`}
-                  >
-                    <IconComponent
-                      className={`mr-3 flex-shrink-0 h-5 w-5 ${
-                        isActive ? 'text-[#0c0c0c]' : 'text-gray-400 group-hover:text-[#bff747]'
-                      }`}
-                    />
-                    <div className="flex-1">
+                  />
+                  {!isCollapsed && (
+                    <div className="ml-3 flex-1">
                       <div className="flex items-center justify-between">
                         <span>{item.name}</span>
                       </div>
@@ -144,24 +145,13 @@ const AdvertiserSidebar = ({ open, setOpen, walletBalance }) => {
                         </p>
                       )}
                     </div>
-                  </NavLink>
-                );
-              })}
-            </nav>
-
-            {/* Quick Actions - Removed Place New Order button */}
-            <div className="flex-shrink-0 flex border-t border-[#bff747]/30 p-4">
-              <div className="w-full">
-                <NavLink
-                  to="/advertiser/browse"
-                  className="w-full flex items-center justify-center px-4 py-2 bg-[#bff747] text-[#0c0c0c] text-sm font-medium rounded-md hover:bg-[#a8e035] transition-colors"
-                >
-                  <ShoppingCartIcon className="h-4 w-4 mr-2 text-[#0c0c0c]" />
-                  Browse Websites
+                  )}
                 </NavLink>
-              </div>
-            </div>
-          </div>
+              );
+            })}
+          </nav>
+
+         
         </div>
       </div>
 
@@ -201,7 +191,6 @@ const AdvertiserSidebar = ({ open, setOpen, walletBalance }) => {
           <nav className="flex-1 px-2 space-y-1 overflow-y-auto">
             {navigation.map((item) => {
               const isActive = isActivePath(item.href, item.end);
-              // Safety check for icon component
               const IconComponent = item.icon && typeof item.icon === 'function' ? item.icon : HomeIcon;
               return (
                 <NavLink
@@ -232,7 +221,7 @@ const AdvertiserSidebar = ({ open, setOpen, walletBalance }) => {
             })}
           </nav>
 
-          {/* Mobile quick action - Removed Place New Order button */}
+          {/* Mobile quick action */}
           <div className="p-4 border-t border-[#bff747]/30">
             <NavLink
               to="/advertiser/browse"
