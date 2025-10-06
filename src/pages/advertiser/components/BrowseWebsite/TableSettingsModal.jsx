@@ -24,7 +24,6 @@ const TableSettingsModal = ({
     e.stopPropagation();
   };
 
-  // Handle close button
   const handleClose = (e) => {
     e.stopPropagation();
     setShowTableSettings(false);

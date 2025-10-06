@@ -1,23 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useParams, useSearchParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams, useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { ChatBubbleLeftRightIcon, ShoppingBagIcon } from '@heroicons/react/24/outline';
 import AdvertiserSidebar from './components/AdvertiserSidebar';
 import AdvertiserHeader from './components/AdvertiserHeader';
 import AdvertiserDashboardHome from './components/AdvertiserDashboardHome';
-import WebsiteBrowsing from './components/WebsiteBrowsing';
-import OrderManagement from './components/OrderManagement';
+import WebsiteBrowsing from './components/BrowseWebsite/WebsiteBrowsing';
+import OrderManagement from './components/OrderManagement/OrderManagement';
 
-import WalletManagement from './components/WalletManagement';
+import WalletManagement from './components/WalletManagement/WalletManagement';
 
-import WebsiteDetailsView from './components/WebsiteDetailsView';
-import OrderDetailsView from './components/OrderDetailsView';
+import WebsiteDetailsView from './components/BrowseWebsite/WebsiteDetailsView';
+import OrderDetailsView from './components/OrderManagement/OrderDetailsView';
 import ProfileSettings from './components/ProfileSettings';
 
-import ProjectsDashboard from './components/ProjectsDashboard';
-import ProjectsDetails from './components/ProjectsDetails';
-import ShoppingCart from './components/ShoppingCart';
-import ChooseMyOwnArticle from './components/ChooseMyOwnArticle';
-import DepositPage from './components/DepositPage'; // Add this import
+import ProjectsDashboard from './components/ProjectManagement/ProjectsDashboard';
+import ProjectsDetails from './components/ProjectManagement/ProjectsDetails';
+import CreateProject from './components/ProjectManagement/CreatProject';
+import ShoppingCart from './components/ShoppingCart/ShoppingCart';
+import ChooseMyOwnArticle from './components/OrderManagement/ChooseMyOwnArticle';
+import DepositPage from './components/WalletManagement/DepositPage'; // Add this import
 import { useAuth } from '../../contexts/AuthContext';
 import { advertiserAPI, walletAPI } from '../../services/api';
 import ChatSidebar from '../../components/chat/ChatSidebar';
@@ -186,6 +187,8 @@ const AdvertiserDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [walletBalance, setWalletBalance] = useState(0);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Removed role check to make dashboard publicly accessible
@@ -346,6 +349,11 @@ const AdvertiserDashboard = () => {
             <Route 
               path="projects/details" 
               element={<ProjectsDetailsWrapper />} 
+            />
+            {/* Added Create Project route */}
+            <Route 
+              path="projects/create" 
+              element={<CreateProject />} 
             />
             {/* Added Shopping Cart route */}
             <Route 

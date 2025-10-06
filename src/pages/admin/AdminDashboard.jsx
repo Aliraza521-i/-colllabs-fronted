@@ -3,16 +3,17 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import AdminSidebar from './components/AdminSidebar';
 import AdminHeader from './components/AdminHeader';
 import AdminDashboardHome from './components/AdminDashboardHome';
-import UserManagement from './components/UserManagement';
-import WebsiteApproval from './components/WebsiteApproval';
-import AllWebsites from './components/AllWebsites';
-import WebsiteMetrics from './components/WebsiteMetrics';
-import OrderManagement from './components/OrderManagement';
-import FinancialManagement from './components/FinancialManagement';
-import Analytics from './components/Analytics';
-import SystemSettings from './components/SystemSettings';
+import UserManagement from './components/UserManagement/UserManagement';
+import WebsiteApproval from './components/WebsiteManagement/WebsiteApproval';
+import AllWebsites from './components/WebsiteManagement/AllWebsites';
+import WebsiteMetrics from './components/WebsiteManagement/WebsiteMetrics';
+import OrderManagement from './components/OrderManagement/OrderManagement';
+import FinancialManagement from './components/FinancialManagement/FinancialManagement';
+import Analytics from './components/AnalyticManagement/Analytics';
+import SystemSettings from './components/SystemSetting/SystemSettings';
 import { useAuth } from '../../contexts/AuthContext';
-import { adminAPI } from '../../services/api';
+import { adminAPI } from '../.././services/api';
+// import { adminAPI } from '../../../services/api';
 import ChatPage from '../../pages/ChatPage';
 
 const AdminDashboard = () => {

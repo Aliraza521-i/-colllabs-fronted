@@ -14,7 +14,7 @@ import {
 
   PencilIcon
 } from '@heroicons/react/24/outline';
-import { adminAPI } from '../../../services/api';
+import { adminAPI } from '../../../../services/api';
 import { Chart } from 'chart.js/auto';
 
 const AllWebsites = () => {

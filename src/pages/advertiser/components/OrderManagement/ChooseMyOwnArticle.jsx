@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { XMarkIcon, ClipboardIcon } from '@heroicons/react/24/outline';
-import { useCart } from '../../../contexts/CartContext';
-import { useAuth } from '../../../contexts/AuthContext';
-import { orderAPI } from '../../../services/api';
+import { useCart } from '../../../../contexts/CartContext';
+import { useAuth } from '../../../../contexts/AuthContext';
+import { orderAPI } from '../../../../services/api';
 
 const ChooseMyOwnArticle = () => {
   const location = useLocation();

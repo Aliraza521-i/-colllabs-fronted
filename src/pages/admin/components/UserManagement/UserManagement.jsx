@@ -14,9 +14,9 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon
 } from '@heroicons/react/24/outline';
-import { adminAPI } from '../../../services/api';
+import { adminAPI } from '../../../../services/api';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../../../../contexts/AuthContext';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);

@@ -20,10 +20,10 @@ import VerificationError from "../pages/publisher/AddWebsite/confirmOS/Verificat
 import Profile from "../pages/publisher/Profile";
 // import ChooseOwnArticle from "../pages/publisher/ChooseOwnArticle";
 import ChatPage from "../pages/ChatPage";
-import Messages from "../pages/publisher/Messages";
-import ChooseMyOwnArticle from "../pages/advertiser/components/ChooseMyOwnArticle";
+import Messages from "../pages/publisher/Message/Messages";
+import ChooseMyOwnArticle from "../pages/advertiser/components/OrderManagement/ChooseMyOwnArticle";
 import PublisherChooseOwnArticle from "../pages/publisher/sales/Article";
-import DepositPage from "../pages/advertiser/components/DepositPage"; // Add this import
+import DepositPage from "../pages/advertiser/components/WalletManagement/DepositPage"; // Add this import
 
 // Admin Dashboard
 import AdminDashboard from "../pages/admin/AdminDashboard";

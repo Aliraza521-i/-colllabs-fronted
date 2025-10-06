@@ -13,7 +13,7 @@ import {
   ChartBarIcon,
   CurrencyDollarIcon
 } from '@heroicons/react/24/outline';
-import { adminAPI } from '../../../services/api';
+import { adminAPI } from '../../../../services/api';
 
 const WebsiteApproval = () => {
   const [websites, setWebsites] = useState([]);

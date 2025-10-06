@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { XMarkIcon, ShoppingBagIcon, CheckCircleIcon, EyeIcon, PencilIcon } from '@heroicons/react/24/outline';
-import { useCart } from '../../../contexts/CartContext';
+import { useCart } from '../../../../contexts/CartContext';
+// import { useCart } from '../../../contexts/CartContext';
 import PublisherWriteArticleModal from './PublisherWriteArticleModal';
-import { websiteAPI, orderAPI } from '../../../services/api';
+import { websiteAPI, orderAPI } from '../../../../services/api';
 
 const ShoppingCart = () => {
   const navigate = useNavigate();

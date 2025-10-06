@@ -898,7 +898,7 @@ const DescriptionPricePage = () => {
           {/* Sensitive Topics */}
           <div className="mb-4 sm:mb-6">
             <label className="block text-[#bff747] font-medium mb-2 text-sm sm:text-base">
-              Sensitive topics you do not accept *
+              Sensitive topics do you accept *
             </label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-2 border border-[#bff747]/30 rounded-lg bg-[#0c0c0c]">
               {sensitiveTopics.map((topic, index) => (
@@ -947,9 +947,9 @@ const DescriptionPricePage = () => {
                 onChange={(e) => handleInputChange('sponsorshipNotification', e.target.value)}
                 className="w-full px-3 sm:px-4 py-2 sm:py-3 border border-[#bff747]/30 rounded-lg focus:border-[#bff747] focus:outline-none appearance-none bg-[#0c0c0c] text-[#bff747]"
               >
-                <option className="bg-[#0c0c0c] text-[#bff747]">Always</option>
-                <option className="bg-[#0c0c0c] text-[#bff747]">Only when required</option>
                 <option className="bg-[#0c0c0c] text-[#bff747]">Never</option>
+                <option className="bg-[#0c0c0c] text-[#bff747]">Always</option>
+                <option className="bg-[#0c0c0c] text-[#bff747]"></option>
               </select>
               <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[#bff747]" />
             </div>

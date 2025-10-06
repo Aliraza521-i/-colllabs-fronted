@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
-import { useChat } from '../../contexts/ChatContext';
-import { useAuth } from '../../contexts/AuthContext';
-import ChatSidebar from '../../components/chat/ChatSidebar';
-import ChatInterface from '../../components/chat/ChatInterface';
+import { useChat } from '../../../contexts/ChatContext';
+import { useAuth } from '../../../contexts/AuthContext';
+import ChatSidebar from '../../../components/chat/ChatSidebar';
+import ChatInterface from '../../../components/chat/ChatInterface';
 import {
   ChatBubbleLeftRightIcon,
   ExclamationCircleIcon

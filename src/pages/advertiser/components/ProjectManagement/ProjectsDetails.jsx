@@ -1,41 +1,44 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Edit, BarChart3, Tag, Globe, TrendingUp, RefreshCw } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { advertiserAPI } from '../../../services/api';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const ProjectsDetails = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const chartRef = useRef(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [orders, setOrders] = useState([]);
+  const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch orders for this project
+  // Fetch project details
   useEffect(() => {
-    fetchProjectOrders();
+    fetchProjectDetails();
   }, []);
 
-  const fetchProjectOrders = async () => {
+  const fetchProjectDetails = () => {
     try {
       setLoading(true);
-      // In a real implementation, we would filter by project ID
-      // For now, we'll fetch all orders as a placeholder
-      const response = await advertiserAPI.getOrders({ limit: 10 });
-      if (response.data) {
-        setOrders(response.data.orders || []);
+      
+      // For now, we'll use the last created project as the "selected" project
+      // In a real implementation, you would get the project ID from the URL params
+      const storedProjects = JSON.parse(localStorage.getItem('advertiserProjects') || '[]');
+      if (storedProjects.length > 0) {
+        // Get the last created project
+        const selectedProject = storedProjects[storedProjects.length - 1];
+        setProject(selectedProject);
       }
     } catch (error) {
-      console.error('Failed to fetch project orders:', error);
+      console.error('Failed to fetch project details:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  const refreshOrders = async () => {
+  const refreshProject = () => {
     setRefreshing(true);
-    await fetchProjectOrders();
+    fetchProjectDetails();
   };
 
   // Chart data
@@ -152,6 +155,36 @@ const ProjectsDetails = () => {
     return <span className={`font-semibold ${statusInfo.class}`}>{statusInfo.text}</span>;
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0c0c0c] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#bff747]"></div>
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="min-h-screen bg-[#0c0c0c] flex items-center justify-center">
+        <div className="bg-[#1a1a1a] rounded-lg border border-[#bff747]/30 p-6 max-w-md w-full">
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-[#bff747]">Project not found</h3>
+            <p className="mt-1 text-sm text-gray-400">No project details available.</p>
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={() => navigate('/advertiser/projects')}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-[#0c0c0c] bg-[#bff747] hover:bg-[#a8e035] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#bff747]"
+              >
+                Back to Projects
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0c0c0c] font-sans">
       <div className="max-w-7xl mx-auto px-4 py-6">
@@ -159,12 +192,12 @@ const ProjectsDetails = () => {
         <div className="mb-8 bg-[#1a1a1a] rounded-lg shadow-sm p-6 border border-[#333]">
           <div className="flex items-start justify-between flex-col sm:flex-row gap-4">
             <div>
-              <h1 className="text-xl font-normal text-[#bff747] mb-2">SEO Optimization Campaign</h1>
+              <h1 className="text-xl font-normal text-[#bff747] mb-2">{project.title}</h1>
               <p className="text-gray-400">Visualize, control and grow your project, all from one place.</p>
             </div>
             <div className="flex gap-2">
               <button 
-                onClick={refreshOrders}
+                onClick={refreshProject}
                 disabled={refreshing}
                 className="flex items-center gap-2 bg-[#1a1a1a] text-[#bff747] px-4 py-2 rounded border border-[#333] hover:bg-[#2a2a2a] transition-colors disabled:opacity-50"
               >
@@ -186,51 +219,65 @@ const ProjectsDetails = () => {
         <div className="flex flex-col lg:flex-row gap-6 mb-8 bg-[#1a1a1a] rounded-lg p-6 border border-[#333]">
           <div className="flex-1 border border-[#333] rounded-xl p-5">
             <div className="flex justify-between items-center mb-5">
-              <p className="text-[#bff747] text-lg">SEO Optimization Campaign</p>
-              <p className="text-[#bff747]">https://link.com</p>
+              <p className="text-[#bff747] text-lg">{project.title}</p>
+              <p className="text-[#bff747]">{project.website}</p>
             </div>
             
             <div className="space-y-5">
               <div className="flex items-center gap-5">
                 <Tag size={18} className="text-[#bff747]" />
                 <p className="text-gray-400">Categories:</p>
-                <p className="text-gray-300">Animals | Beauty | Technology | Celebrities</p>
+                <p className="text-gray-300">{project.category}</p>
               </div>
               <div className="flex items-center gap-5">
                 <Globe size={18} className="text-[#bff747]" />
-                <p className="text-gray-400">Language:</p>
-                <p className="text-gray-300">Spanish</p>
+                <p className="text-gray-400">Created Date:</p>
+                <p className="text-gray-300">{project.date}</p>
               </div>
               <div className="flex items-center gap-5">
                 <TrendingUp size={18} className="text-[#bff747]" />
-                <p className="text-gray-400">Objective:</p>
-                <p className="text-gray-300">Increase organic traffic</p>
+                <p className="text-gray-400">Status:</p>
+                <p className="text-gray-300">{project.status}</p>
               </div>
+              <div className="flex items-center gap-5">
+                <BarChart3 size={18} className="text-[#bff747]" />
+                <p className="text-gray-400">Budget:</p>
+                <p className="text-gray-300">${project.budget}</p>
+              </div>
+              {project.description && (
+                <div className="flex items-start gap-5">
+                  <Edit size={18} className="text-[#bff747] mt-1" />
+                  <div>
+                    <p className="text-gray-400">Description:</p>
+                    <p className="text-gray-300">{project.description}</p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
           <div className="lg:w-80 border border-[#333] rounded-xl p-5">
-            <p className="text-[#bff747] text-lg mb-4">Balance</p>
+            <p className="text-[#bff747] text-lg mb-4">Project Stats</p>
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
-                <p className="text-gray-400">Total invested in this project</p>
-                <p className="text-gray-300">$300</p>
+                <p className="text-gray-400">Finished Posts</p>
+                <p className="text-gray-300">{project.stats.finishedPosts}</p>
               </div>
               <div className="flex justify-between text-sm">
-                <p className="text-gray-400">Total invested in this project</p>
-                <p className="text-gray-300">$300</p>
+                <p className="text-gray-400">Active Posts</p>
+                <p className="text-gray-300">{project.stats.activePosts}</p>
               </div>
               <div className="flex justify-between text-sm">
-                <p className="text-gray-400">Total invested in this project</p>
-                <p className="text-gray-300">$300</p>
+                <p className="text-gray-400">Pending Reviews</p>
+                <p className="text-gray-300">{project.stats.pendingReviews}</p>
               </div>
               <div className="flex justify-between text-sm border-b border-[#bff747] pb-3">
-                <p className="text-gray-400">Total invested in this project</p>
-                <p className="text-gray-300">$300</p>
+                <p className="text-gray-400">Total Orders</p>
+                <p className="text-gray-300">{project.stats.totalOrders}</p>
               </div>
               <div className="flex justify-between text-sm">
-                <p className="text-[#bff747] font-semibold">Total Amount</p>
-                <p className="text-gray-300">$410</p>
+                <p className="text-[#bff747] font-semibold">Budget</p>
+                <p className="text-gray-300">${project.budget}</p>
               </div>
             </div>
           </div>
@@ -325,67 +372,13 @@ const ProjectsDetails = () => {
           <div className="p-5">
             <div className="flex justify-between items-center mb-5">
               <h3 className="text-[#bff747] text-lg font-medium">Project Orders</h3>
-              <p className="text-gray-400 text-sm">{orders.length} orders</p>
+              <p className="text-gray-400 text-sm">{project.stats.totalOrders} orders</p>
             </div>
             
-            {loading ? (
-              <div className="flex justify-center items-center h-32">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#bff747]"></div>
-              </div>
-            ) : orders.length === 0 ? (
-              <div className="text-center py-8 text-gray-400">
-                <p>No orders found for this project</p>
-              </div>
-            ) : (
-              <table className="w-full">
-                <thead>
-                  <tr>
-                    <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
-                      Order ID
-                    </th>
-                    <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
-                      Website
-                    </th>
-                    <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
-                      Publication URL
-                    </th>
-                    <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
-                      Purchase Date
-                    </th>
-                    <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
-                      Price
-                    </th>
-                    <th className="text-left py-4 px-5 text-[#bff747] font-semibold border-b border-[#333] whitespace-nowrap">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {orders.map((order) => (
-                    <tr key={order._id}>
-                      <td className="py-4 px-5 text-sm text-gray-300 font-semibold whitespace-nowrap">
-                        #{order.orderId}
-                      </td>
-                      <td className="py-4 px-5 text-sm text-gray-300 font-semibold whitespace-nowrap">
-                        {order.website?.domain || 'N/A'}
-                      </td>
-                      <td className="py-4 px-5 text-sm text-gray-300 font-semibold whitespace-nowrap max-w-xs truncate">
-                        {order.targetUrl || 'N/A'}
-                      </td>
-                      <td className="py-4 px-5 text-sm text-gray-300 font-semibold whitespace-nowrap">
-                        {new Date(order.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="py-4 px-5 text-sm text-gray-300 font-semibold whitespace-nowrap">
-                        ${order.totalAmount || 0}
-                      </td>
-                      <td className="py-4 px-5 text-sm whitespace-nowrap">
-                        {getStatusBadge(order.status)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+            <div className="text-center py-8 text-gray-400">
+              <p>No orders found for this project</p>
+              <p className="text-sm mt-2">Orders will appear here once you start placing orders for this project.</p>
+            </div>
           </div>
         </div>
       </div>

@@ -17,7 +17,7 @@ import {
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { advertiserAPI } from '../../../services/api';
+import { advertiserAPI } from '../../../../services/api';
 
 const OrderManagement = () => {
   const navigate = useNavigate();

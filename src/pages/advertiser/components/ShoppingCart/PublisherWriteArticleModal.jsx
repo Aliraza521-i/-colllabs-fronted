@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import { useAuth } from '../../../contexts/AuthContext';
-import { useCart } from '../../../contexts/CartContext';
+import { useAuth } from '../../../../contexts/AuthContext';
+import { useCart } from '../../../../contexts/CartContext';
 
 const PublisherWriteArticleModal = ({ isOpen, onClose, item, onSubmit }) => {
   const { user } = useAuth();

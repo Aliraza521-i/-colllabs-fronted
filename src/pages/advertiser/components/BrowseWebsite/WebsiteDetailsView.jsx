@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { advertiserAPI } from '../../../services/api';
-import { useAuth } from '../../../contexts/AuthContext';
+import { advertiserAPI } from '../../../../services/api';
+import { useAuth } from '../../../../contexts/AuthContext';
 import { 
   GlobeAltIcon, 
   CurrencyDollarIcon, 

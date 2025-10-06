@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { advertiserAPI } from '../../../services/api';
+import { advertiserAPI } from '../../../../services/api';
 import {
   DocumentTextIcon,
   CurrencyDollarIcon,
