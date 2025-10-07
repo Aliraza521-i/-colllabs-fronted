@@ -1,109 +1,137 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Filter, Globe, Calendar, Tag, ArrowRight, Trash2, Edit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { advertiserAPI } from '../../../../services/api';
+import { useAuth } from '../../../../contexts/AuthContext';
 
 const ProjectsDashboard = () => {
   const navigate = useNavigate();
+  const { user } = useAuth(); // Get current user
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch projects from localStorage
+  // Fetch projects from the backend API
   useEffect(() => {
+    console.log('Current user:', user);
     fetchProjects();
-  }, []);
+  }, [user]);
 
-  const fetchProjects = () => {
+  const fetchProjects = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Fetch projects from localStorage
-      const storedProjects = JSON.parse(localStorage.getItem('advertiserProjects') || '[]');
-      setProjects(storedProjects);
+      // Fetch projects from the backend API
+      const response = await advertiserAPI.getProjects();
+      
+      console.log('Projects API response:', response);
+      
+      if (response.data && (response.data.ok || response.data.success)) {
+        console.log('Projects data:', response.data.data);
+        // Log each project to see the structure
+        response.data.data.forEach((project, index) => {
+          console.log(`Project ${index + 1}:`, project);
+          console.log(`Project ${index + 1} ID:`, project._id);
+          console.log(`Project ${index + 1} ID type:`, typeof project._id);
+        });
+        setProjects(response.data.data);
+      } else {
+        setProjects([]);
+      }
     } catch (err) {
       console.error('Failed to fetch projects:', err);
       setError('Failed to load projects. Please try again later.');
+      setProjects([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const ProjectCard = ({ project }) => (
-    <div className="bg-[#1a1a1a] rounded-2xl p-6 shadow-sm border border-[#333] hover:shadow-md transition-all duration-200">
-      <div className="flex items-center gap-4 mb-4">
-        <div className="w-8 h-8 bg-gradient-to-r from-[#bff747] to-[#a8e035] rounded-lg flex items-center justify-center">
-          <span className="text-[#0c0c0c] text-sm font-bold">P</span>
+  const ProjectCard = ({ project }) => {
+    console.log('ProjectCard received project:', project);
+    return (
+      <div className="bg-[#1a1a1a] rounded-2xl p-6 shadow-sm border border-[#333] hover:shadow-md transition-all duration-200">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-8 h-8 bg-gradient-to-r from-[#bff747] to-[#a8e035] rounded-lg flex items-center justify-center">
+            <span className="text-[#0c0c0c] text-sm font-bold">P</span>
+          </div>
+          <h3 className="text-lg font-semibold text-[#bff747]">{project.title}</h3>
         </div>
-        <h3 className="text-lg font-semibold text-[#bff747]">{project.title}</h3>
-      </div>
 
-      <div className="space-y-3 mb-6">
-        <div className="flex items-center gap-3 text-sm text-gray-300">
-          <Globe className="w-4 h-4 text-[#bff747]" />
-          <span>{project.website}</span>
+        <div className="space-y-3 mb-6">
+          <div className="flex items-center gap-3 text-sm text-gray-300">
+            <Globe className="w-4 h-4 text-[#bff747]" />
+            <span>{project.website}</span>
+          </div>
+          <div className="flex items-center gap-3 text-sm text-gray-300">
+            <Calendar className="w-4 h-4 text-[#bff747]" />
+            <span>{project.createdAt ? new Date(project.createdAt).toLocaleDateString() : 'N/A'}</span>
+          </div>
+          <div className="flex items-center gap-3 text-sm text-gray-300">
+            <Tag className="w-4 h-4 text-[#bff747]" />
+            <span>{project.categories ? project.categories.join(', ') : 'N/A'}</span>
+          </div>
+          
+          <div className="flex items-center gap-3 text-sm text-gray-300">
+            <ArrowRight className="w-4 h-4 text-[#bff747]" />
+            <span className="px-2 py-1 bg-green-900/30 text-green-400 rounded-full text-xs border border-green-500/30">
+              {project.status}
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-3 text-sm text-gray-300">
-          <Calendar className="w-4 h-4 text-[#bff747]" />
-          <span>{project.date}</span>
-        </div>
-        <div className="flex items-center gap-3 text-sm text-gray-300">
-          <Tag className="w-4 h-4 text-[#bff747]" />
-          <span>{project.category}</span>
-        </div>
-        
-        <div className="flex items-center gap-3 text-sm text-gray-300">
-          <ArrowRight className="w-4 h-4 text-[#bff747]" />
-          <span className="px-2 py-1 bg-green-900/30 text-green-400 rounded-full text-xs border border-green-500/30">
-            {project.status}
-          </span>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <div className="bg-[#bff747] text-[#0c0c0c] px-3 py-1 rounded-lg text-sm font-medium">
-            {project.stats.finishedPosts}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="bg-[#bff747] text-[#0c0c0c] px-3 py-1 rounded-lg text-sm font-medium">
+              {project.stats?.finishedPosts || 0}
+            </div>
+            <span className="text-sm text-gray-300">Finished Posts</span>
           </div>
-          <span className="text-sm text-gray-300">Finished Posts</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="bg-[#bff747] text-[#0c0c0c] px-3 py-1 rounded-lg text-sm font-medium">
-            {project.stats.activePosts}
+          <div className="flex items-center gap-3">
+            <div className="bg-[#bff747] text-[#0c0c0c] px-3 py-1 rounded-lg text-sm font-medium">
+              {project.stats?.activePosts || 0}
+            </div>
+            <span className="text-sm text-gray-300">Active Posts</span>
           </div>
-          <span className="text-sm text-gray-300">Active Posts</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="bg-[#bff747] text-[#0c0c0c] px-3 py-1 rounded-lg text-sm font-medium">
-            {project.stats.pendingReviews}
+          <div className="flex items-center gap-3">
+            <div className="bg-[#bff747] text-[#0c0c0c] px-3 py-1 rounded-lg text-sm font-medium">
+              {project.stats?.pendingReviews || 0}
+            </div>
+            <span className="text-sm text-gray-300">Pending Reviews</span>
           </div>
-          <span className="text-sm text-gray-300">Pending Reviews</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="bg-[#bff747] text-[#0c0c0c] px-3 py-1 rounded-lg text-sm font-medium">
-            {project.stats.totalOrders}
+          <div className="flex items-center gap-3">
+            <div className="bg-[#bff747] text-[#0c0c0c] px-3 py-1 rounded-lg text-sm font-medium">
+              {project.stats?.totalOrders || 0}
+            </div>
+            <span className="text-sm text-gray-300">Total Orders</span>
           </div>
-          <span className="text-sm text-gray-300">Total Orders</span>
         </div>
-      </div>
 
-      <div className="flex items-center justify-end gap-2">
-        <button className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-900/30 rounded-lg transition-colors">
-          <Trash2 className="w-4 h-4" />
-        </button>
-        <button className="p-2 text-gray-400 hover:text-[#bff747] hover:bg-[#bff747]/20 rounded-lg transition-colors">
-          <Edit className="w-4 h-4" />
-        </button>
-        <button 
-          onClick={() => navigate('/advertiser/projects/details')}
-          className="bg-[#bff747] hover:bg-[#a8e035] text-[#0c0c0c] px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          See Project
-        </button>
+        <div className="flex items-center justify-end gap-2">
+          <button className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-900/30 rounded-lg transition-colors">
+            <Trash2 className="w-4 h-4" />
+          </button>
+          <button className="p-2 text-gray-400 hover:text-[#bff747] hover:bg-[#bff747]/20 rounded-lg transition-colors">
+            <Edit className="w-4 h-4" />
+          </button>
+          <button 
+            onClick={() => {
+              // Use project.id instead of project._id since the virtual removes _id
+              const projectId = project.id || project._id;
+              console.log('Navigating to project details with ID:', projectId);
+              console.log('Type of projectId:', typeof projectId);
+              navigate(`/advertiser/projects/${projectId}`);
+            }}
+            className="bg-[#bff747] hover:bg-[#a8e035] text-[#0c0c0c] px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            See Project
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const NewProjectCard = () => (
     <div 
@@ -192,7 +220,7 @@ const ProjectsDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
           <NewProjectCard />
           {projects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard key={project._id} project={project} />
           ))}
         </div>
 

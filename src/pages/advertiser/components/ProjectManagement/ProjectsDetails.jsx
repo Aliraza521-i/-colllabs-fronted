@@ -1,35 +1,59 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Edit, BarChart3, Tag, Globe, TrendingUp, RefreshCw } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { advertiserAPI } from '../../../../services/api';
+import { useAuth } from '../../../../contexts/AuthContext';
 
 const ProjectsDetails = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const { id } = useParams(); // Get project ID from URL params
+  const { user } = useAuth(); // Get current user
   const chartRef = useRef(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
 
   // Fetch project details
   useEffect(() => {
-    fetchProjectDetails();
-  }, []);
+    console.log('Project ID from route params:', id);
+    console.log('Current user:', user);
+    console.log('Type of id:', typeof id);
+    
+    // Check if id is undefined or invalid
+    if (!id || id === 'undefined') {
+      console.log('ERROR: No valid project ID provided');
+      setError('No project ID provided');
+      setLoading(false);
+      return;
+    }
+    
+    fetchProjectDetails(id);
+  }, [id, user]);
 
-  const fetchProjectDetails = () => {
+  const fetchProjectDetails = async (projectId) => {
     try {
       setLoading(true);
+      setError(null);
       
-      // For now, we'll use the last created project as the "selected" project
-      // In a real implementation, you would get the project ID from the URL params
-      const storedProjects = JSON.parse(localStorage.getItem('advertiserProjects') || '[]');
-      if (storedProjects.length > 0) {
-        // Get the last created project
-        const selectedProject = storedProjects[storedProjects.length - 1];
-        setProject(selectedProject);
+      console.log('Fetching project with ID:', projectId);
+      
+      // Fetch project details from the backend API
+      const response = await advertiserAPI.getProject(projectId);
+      
+      console.log('Project API response:', response);
+      
+      if (response.data && (response.data.ok || response.data.success)) {
+        setProject(response.data.data);
+        console.log('Project data set:', response.data.data);
+      } else {
+        setError('Project not found');
+        console.log('Project not found response:', response.data);
       }
     } catch (error) {
       console.error('Failed to fetch project details:', error);
+      setError('Failed to load project details. Please try again later.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -38,7 +62,9 @@ const ProjectsDetails = () => {
 
   const refreshProject = () => {
     setRefreshing(true);
-    fetchProjectDetails();
+    if (id) {
+      fetchProjectDetails(id);
+    }
   };
 
   // Chart data
@@ -163,7 +189,30 @@ const ProjectsDetails = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-[#0c0c0c] flex items-center justify-center">
+        <div className="bg-[#1a1a1a] rounded-lg border border-[#bff747]/30 p-6 max-w-md w-full">
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-[#bff747]">Error</h3>
+            <p className="mt-1 text-sm text-gray-400">{error}</p>
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={() => navigate('/advertiser/projects')}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-[#0c0c0c] bg-[#bff747] hover:bg-[#a8e035] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#bff747]"
+              >
+                Back to Projects
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!project) {
+    console.log('No project data to display');
     return (
       <div className="min-h-screen bg-[#0c0c0c] flex items-center justify-center">
         <div className="bg-[#1a1a1a] rounded-lg border border-[#bff747]/30 p-6 max-w-md w-full">
@@ -185,6 +234,7 @@ const ProjectsDetails = () => {
     );
   }
 
+  console.log('Rendering project details:', project);
   return (
     <div className="min-h-screen bg-[#0c0c0c] font-sans">
       <div className="max-w-7xl mx-auto px-4 py-6">
@@ -227,12 +277,12 @@ const ProjectsDetails = () => {
               <div className="flex items-center gap-5">
                 <Tag size={18} className="text-[#bff747]" />
                 <p className="text-gray-400">Categories:</p>
-                <p className="text-gray-300">{project.category}</p>
+                <p className="text-gray-300">{project.categories ? project.categories.join(', ') : 'N/A'}</p>
               </div>
               <div className="flex items-center gap-5">
                 <Globe size={18} className="text-[#bff747]" />
                 <p className="text-gray-400">Created Date:</p>
-                <p className="text-gray-300">{project.date}</p>
+                <p className="text-gray-300">{project.createdAt ? new Date(project.createdAt).toLocaleDateString() : 'N/A'}</p>
               </div>
               <div className="flex items-center gap-5">
                 <TrendingUp size={18} className="text-[#bff747]" />
@@ -242,7 +292,7 @@ const ProjectsDetails = () => {
               <div className="flex items-center gap-5">
                 <BarChart3 size={18} className="text-[#bff747]" />
                 <p className="text-gray-400">Budget:</p>
-                <p className="text-gray-300">${project.budget}</p>
+                <p className="text-gray-300">${project.budget?.toFixed(2) || '0.00'}</p>
               </div>
               {project.description && (
                 <div className="flex items-start gap-5">
@@ -261,23 +311,23 @@ const ProjectsDetails = () => {
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <p className="text-gray-400">Finished Posts</p>
-                <p className="text-gray-300">{project.stats.finishedPosts}</p>
+                <p className="text-gray-300">{project.stats?.finishedPosts || 0}</p>
               </div>
               <div className="flex justify-between text-sm">
                 <p className="text-gray-400">Active Posts</p>
-                <p className="text-gray-300">{project.stats.activePosts}</p>
+                <p className="text-gray-300">{project.stats?.activePosts || 0}</p>
               </div>
               <div className="flex justify-between text-sm">
                 <p className="text-gray-400">Pending Reviews</p>
-                <p className="text-gray-300">{project.stats.pendingReviews}</p>
+                <p className="text-gray-300">{project.stats?.pendingReviews || 0}</p>
               </div>
               <div className="flex justify-between text-sm border-b border-[#bff747] pb-3">
                 <p className="text-gray-400">Total Orders</p>
-                <p className="text-gray-300">{project.stats.totalOrders}</p>
+                <p className="text-gray-300">{project.stats?.totalOrders || 0}</p>
               </div>
               <div className="flex justify-between text-sm">
                 <p className="text-[#bff747] font-semibold">Budget</p>
-                <p className="text-gray-300">${project.budget}</p>
+                <p className="text-gray-300">${project.budget?.toFixed(2) || '0.00'}</p>
               </div>
             </div>
           </div>
@@ -372,7 +422,7 @@ const ProjectsDetails = () => {
           <div className="p-5">
             <div className="flex justify-between items-center mb-5">
               <h3 className="text-[#bff747] text-lg font-medium">Project Orders</h3>
-              <p className="text-gray-400 text-sm">{project.stats.totalOrders} orders</p>
+              <p className="text-gray-400 text-sm">{project.stats?.totalOrders || 0} orders</p>
             </div>
             
             <div className="text-center py-8 text-gray-400">

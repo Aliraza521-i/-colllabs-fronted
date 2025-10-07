@@ -45,8 +45,6 @@ const WebsiteBrowsing = () => {
     maxPA: searchParams.get('maxPA') || '',
     minSS: searchParams.get('minSS') || '',
     maxSS: searchParams.get('maxSS') || '',
-    minAS: searchParams.get('minAS') || '',
-    maxAS: searchParams.get('maxAS') || '',
     minTF: searchParams.get('minTF') || '',
     maxTF: searchParams.get('maxTF') || '',
     minCF: searchParams.get('minCF') || '',
@@ -59,8 +57,6 @@ const WebsiteBrowsing = () => {
     maxAhrefsTraffic: searchParams.get('maxAhrefsTraffic') || '',
     minSemrushTraffic: searchParams.get('minSemrushTraffic') || '',
     maxSemrushTraffic: searchParams.get('maxSemrushTraffic') || '',
-    minMonthlyTraffic: searchParams.get('minMonthlyTraffic') || '',
-    maxMonthlyTraffic: searchParams.get('maxMonthlyTraffic') || '',
     minAhrefsKeywords: searchParams.get('minAhrefsKeywords') || '',
     maxAhrefsKeywords: searchParams.get('maxAhrefsKeywords') || '',
     minSemrushKeywords: searchParams.get('minSemrushKeywords') || '',
@@ -197,12 +193,13 @@ const WebsiteBrowsing = () => {
     if (key.startsWith('min') || key.startsWith('max')) {
       // Validate SEO metrics ranges (0-100)
       if (key.includes('DA') || key.includes('DR') || key.includes('PA') || 
-          key.includes('SS') || key.includes('AS') || key.includes('TF') || 
+          key.includes('SS') || key.includes('TF') || 
           key.includes('CF') || key.includes('UR')) {
         if (value !== '') {
           const numValue = parseFloat(value);
           if (numValue < 0) value = '0';
-          if (numValue > 100) value = '100';
+          if (key.includes('SS') && numValue > 17) value = '17'; // Spam Score max is 17
+          else if (numValue > 100) value = '100';
         }
       }
       // Validate Domain Age specifically (0-100 years)
@@ -215,7 +212,7 @@ const WebsiteBrowsing = () => {
       }
       // Validate other traffic/keyword metrics (no specific range limit mentioned)
       else if (key.includes('Ahrefs') || key.includes('Semrush') ||
-               key.includes('Monthly') || key.includes('Keywords') || 
+               key.includes('Keywords') || 
                key.includes('Referring')) {
         if (value !== '') {
           const numValue = parseFloat(value);
@@ -245,7 +242,7 @@ const WebsiteBrowsing = () => {
   };
 
   const clearFilters = () => {
-    setFilters({
+    const clearedFilters = {
       search: '',
       category: 'all',
       minDA: '',
@@ -256,8 +253,6 @@ const WebsiteBrowsing = () => {
       maxPA: '',
       minSS: '',
       maxSS: '',
-      minAS: '',
-      maxAS: '',
       minTF: '',
       maxTF: '',
       minCF: '',
@@ -270,8 +265,6 @@ const WebsiteBrowsing = () => {
       maxAhrefsTraffic: '',
       minSemrushTraffic: '',
       maxSemrushTraffic: '',
-      minMonthlyTraffic: '',
-      maxMonthlyTraffic: '',
       minAhrefsKeywords: '',
       maxAhrefsKeywords: '',
       minSemrushKeywords: '',
@@ -286,49 +279,10 @@ const WebsiteBrowsing = () => {
       language: 'all',
       linkType: 'all',
       sortBy: 'relevance'
-    });
-    setAppliedFilters({
-      search: '',
-      category: 'all',
-      minDA: '',
-      maxDA: '',
-      minDR: '',
-      maxDR: '',
-      minPA: '',
-      maxPA: '',
-      minSS: '',
-      maxSS: '',
-      minAS: '',
-      maxAS: '',
-      minTF: '',
-      maxTF: '',
-      minCF: '',
-      maxCF: '',
-      minUR: '',
-      maxUR: '',
-      minDomainAge: '',
-      maxDomainAge: '',
-      minAhrefsTraffic: '',
-      maxAhrefsTraffic: '',
-      minSemrushTraffic: '',
-      maxSemrushTraffic: '',
-      minMonthlyTraffic: '',
-      maxMonthlyTraffic: '',
-      minAhrefsKeywords: '',
-      maxAhrefsKeywords: '',
-      minSemrushKeywords: '',
-      maxSemrushKeywords: '',
-      minAhrefsReferringDomains: '',
-      maxAhrefsReferringDomains: '',
-      minSemrushReferringDomains: '',
-      maxSemrushReferringDomains: '',
-      minPrice: '',
-      maxPrice: '',
-      country: 'all',
-      language: 'all',
-      linkType: 'all',
-      sortBy: 'relevance'
-    });
+    };
+    
+    setFilters(clearedFilters);
+    setAppliedFilters(clearedFilters);
     setSearchParams({});
     setCurrentPage(1);
   };

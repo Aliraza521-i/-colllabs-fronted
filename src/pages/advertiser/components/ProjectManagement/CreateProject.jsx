@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Plus, Globe, Tag, TrendingUp, DollarSign, Search, ChevronDown, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { advertiserAPI } from '../../../../services/api';
 
 const CreateProject = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const CreateProject = () => {
   const [errors, setErrors] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const categorySelectRef = useRef(null);
 
   // Categories list (same as publisher categories)
@@ -168,49 +170,46 @@ const CreateProject = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (validateForm()) {
-      // Create project object
-      const newProject = {
-        id: Date.now(), // Temporary ID
-        title: formData.title,
-        website: formData.website,
-        category: formData.categories.join(', '), // Join categories for display
-        categories: formData.categories, // Keep array for future use
-        language: formData.language, // New field
-        minPostBudget: formData.minPostBudget ? parseFloat(formData.minPostBudget) : null,
-        maxPostBudget: formData.maxPostBudget ? parseFloat(formData.maxPostBudget) : null,
-        postsRequired: parseInt(formData.postsRequired),
-        status: 'Active',
-        date: new Date().toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'short', 
-          day: 'numeric' 
-        }),
-        stats: {
-          finishedPosts: 0,
-          activePosts: 0,
-          pendingReviews: 0,
-          totalOrders: 0
-        },
-        budget: parseFloat(formData.budget),
-        description: formData.description
-      };
-      
-      // Save to localStorage (temporary solution until backend is implemented)
-      const existingProjects = JSON.parse(localStorage.getItem('advertiserProjects') || '[]');
-      const updatedProjects = [...existingProjects, newProject];
-      localStorage.setItem('advertiserProjects', JSON.stringify(updatedProjects));
-      
-      // Navigate back to projects dashboard with success message
-      navigate('/advertiser/projects', { 
-        state: { 
-          message: 'Project created successfully!',
-          type: 'success'
-        } 
-      });
+      setLoading(true);
+      try {
+        // Create project object
+        const projectData = {
+          title: formData.title,
+          website: formData.website,
+          categories: formData.categories,
+          language: formData.language,
+          minPostBudget: formData.minPostBudget ? parseFloat(formData.minPostBudget) : null,
+          maxPostBudget: formData.maxPostBudget ? parseFloat(formData.maxPostBudget) : null,
+          postsRequired: parseInt(formData.postsRequired),
+          budget: parseFloat(formData.budget),
+          description: formData.description
+        };
+        
+        // Send to backend API
+        const response = await advertiserAPI.createProject(projectData);
+        
+        if (response.data && (response.data.ok || response.data.success)) {
+          // Navigate back to projects dashboard with success message
+          navigate('/advertiser/projects', { 
+            state: { 
+              message: 'Project created successfully!',
+              type: 'success'
+            } 
+          });
+        } else {
+          // Handle API error
+          setErrors({ submit: response.data?.message || 'Failed to create project. Please try again.' });
+        }
+      } catch (error) {
+        console.error('Failed to create project:', error);
+        setErrors({ submit: 'Failed to create project. Please try again.' });
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -242,6 +241,13 @@ const CreateProject = () => {
         <div className="bg-[#1a1a1a] rounded-2xl border border-[#333] p-6">
           <form onSubmit={handleSubmit}>
             <div className="space-y-6">
+              {/* Error Message */}
+              {errors.submit && (
+                <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-4">
+                  <p className="text-red-300 text-sm">{errors.submit}</p>
+                </div>
+              )}
+              
               {/* Project Title */}
               <div>
                 <label htmlFor="title" className="block text-sm font-medium text-[#bff747] mb-2">
@@ -542,15 +548,29 @@ const CreateProject = () => {
                   type="button"
                   onClick={handleCancel}
                   className="px-6 py-3 border border-[#333] text-gray-300 rounded-lg hover:bg-[#2a2a2a] transition-colors"
+                  disabled={loading}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-3 bg-[#bff747] text-[#0c0c0c] font-medium rounded-lg hover:bg-[#a8e035] transition-colors flex items-center gap-2"
+                  className="px-6 py-3 bg-[#bff747] text-[#0c0c0c] font-medium rounded-lg hover:bg-[#a8e035] transition-colors flex items-center gap-2 disabled:opacity-50"
+                  disabled={loading}
                 >
-                  <Plus size={16} />
-                  Create Project
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-[#0c0c0c]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus size={16} />
+                      Create Project
+                    </>
+                  )}
                 </button>
               </div>
             </div>

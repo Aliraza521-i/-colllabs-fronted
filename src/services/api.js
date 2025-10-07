@@ -188,6 +188,12 @@ export const adminAPI = {
   getAnalytics: (params) => api.get('/admin/analytics', { params }),
   getNotifications: () => api.get('/notification'),
   getAllChats: (params) => api.get('/admin/chats', { params }),
+  // Project Management endpoints
+  getProjects: (params) => api.get('/admin/projects', { params }),
+  getProject: (projectId) => api.get(`/admin/projects/${projectId}`),
+  updateProject: (projectId, data) => api.put(`/admin/projects/${projectId}`, data),
+  deleteProject: (projectId) => api.delete(`/admin/projects/${projectId}`),
+  getProjectStats: (projectId) => api.get(`/admin/projects/${projectId}/stats`),
 };
 
 // Website API calls
@@ -285,6 +291,24 @@ export const advertiserAPI = {
   getDashboard: () => api.get('/advertiser/dashboard'),
   // Fixed the notifications endpoint to use the correct path
   getNotifications: () => api.get('/notification'),
+  // Project endpoints
+  getProjects: (params = {}) => api.get('/advertiser/projects', { params }),
+  createProject: (projectData) => api.post('/advertiser/projects', projectData),
+  getProject: (projectId) => {
+    console.log('Fetching project with ID:', projectId);
+    console.log('Type of projectId:', typeof projectId);
+    
+    // Check if projectId is valid
+    if (!projectId || projectId === 'undefined') {
+      console.log('ERROR: Invalid projectId provided to API');
+      // Return a rejected promise with an error
+      return Promise.reject(new Error('Invalid project ID'));
+    }
+    
+    return api.get(`/advertiser/projects/${projectId}`);
+  },
+  updateProject: (projectId, data) => api.put(`/advertiser/projects/${projectId}`, data),
+  deleteProject: (projectId) => api.delete(`/advertiser/projects/${projectId}`),
 };
 
 // Wallet API calls

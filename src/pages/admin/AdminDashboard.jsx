@@ -11,6 +11,7 @@ import OrderManagement from './components/OrderManagement/OrderManagement';
 import FinancialManagement from './components/FinancialManagement/FinancialManagement';
 import Analytics from './components/AnalyticManagement/Analytics';
 import SystemSettings from './components/SystemSetting/SystemSettings';
+import ProjectManagement from './components/ProjectManagement/ProjectManagement';
 import { useAuth } from '../../contexts/AuthContext';
 import { adminAPI } from '../.././services/api';
 // import { adminAPI } from '../../../services/api';
@@ -168,6 +169,10 @@ const AdminDashboard = () => {
             <Route 
               path="website-metrics" 
               element={<WebsiteMetrics />} 
+            />
+            <Route 
+              path="projects" 
+              element={<ProjectManagement />} 
             />
             <Route 
               path="orders" 

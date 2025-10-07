@@ -15,7 +15,7 @@ import ProfileSettings from './components/ProfileSettings';
 
 import ProjectsDashboard from './components/ProjectManagement/ProjectsDashboard';
 import ProjectsDetails from './components/ProjectManagement/ProjectsDetails';
-import CreateProject from './components/ProjectManagement/CreatProject';
+import CreateProject from './components/ProjectManagement/CreateProject';
 import ShoppingCart from './components/ShoppingCart/ShoppingCart';
 import ChooseMyOwnArticle from './components/OrderManagement/ChooseMyOwnArticle';
 import DepositPage from './components/WalletManagement/DepositPage'; // Add this import
@@ -171,12 +171,6 @@ const Messages = () => {
       </div>
     </div>
   );
-};
-
-// Create a wrapper component for ProjectsDetails to avoid potential import issues
-const ProjectsDetailsWrapper = () => {
-  // Import the component dynamically to avoid circular dependencies
-  return <ProjectsDetails />;
 };
 
 const AdvertiserDashboard = () => {
@@ -345,10 +339,15 @@ const AdvertiserDashboard = () => {
               path="projects" 
               element={<ProjectsDashboard />} 
             />
-            {/* Added Projects Details route with wrapper */}
+            {/* Updated Projects Details route to use ID parameter */}
+            <Route 
+              path="projects/:id" 
+              element={<ProjectsDetails />} 
+            />
+            {/* Keep the general details route for backward compatibility */}
             <Route 
               path="projects/details" 
-              element={<ProjectsDetailsWrapper />} 
+              element={<ProjectsDetails />} 
             />
             {/* Added Create Project route */}
             <Route 

@@ -10,7 +10,8 @@ import {
   CogIcon,
   ChatBubbleLeftRightIcon,
   XMarkIcon,
-  BellIcon
+  BellIcon,
+  FolderIcon
 } from '@heroicons/react/24/outline';
 
 const AdminSidebar = ({ open, setOpen, notifications }) => {
@@ -50,6 +51,12 @@ const AdminSidebar = ({ open, setOpen, notifications }) => {
       name: 'All Websites',
       href: '/admin/all-websites',
       icon: GlobeAltIcon,
+      badge: 0
+    },
+    {
+      name: 'Project Management',
+      href: '/admin/projects',
+      icon: FolderIcon,
       badge: 0
     },
     {
