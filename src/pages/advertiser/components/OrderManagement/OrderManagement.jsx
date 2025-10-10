@@ -1,18 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import {
   DocumentTextIcon,
-  MagnifyingGlassIcon,
-  FunnelIcon,
+
   EyeIcon,
   CheckCircleIcon,
   XCircleIcon,
   ClockIcon,
   ChatBubbleLeftRightIcon,
-  ArrowDownTrayIcon,
   ExclamationTriangleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  CalendarIcon,
   CurrencyDollarIcon,
   ArrowPathIcon
 } from '@heroicons/react/24/outline';
@@ -43,7 +40,6 @@ const OrderManagement = () => {
     sortOrder: sortOrderParam
   });
 
-  const [showFilters, setShowFilters] = useState(false);
   const [stats, setStats] = useState({});
 
   const ordersPerPage = 20;
@@ -92,20 +88,7 @@ const OrderManagement = () => {
     await fetchOrders();
   };
 
-  const handleFilterChange = (key, value) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
-    setCurrentPage(1);
-    
-    // Update URL params
-    const newSearchParams = new URLSearchParams();
-    Object.keys(newFilters).forEach(key => {
-      if (newFilters[key] && newFilters[key] !== 'all') {
-        newSearchParams.set(key, newFilters[key]);
-      }
-    });
-    setSearchParams(newSearchParams);
-  };
+ 
 
   const handleOrderAction = async (orderId, action) => {
     try {
@@ -126,54 +109,18 @@ const OrderManagement = () => {
           return;
       }
 
-      if (response.data) {
+      if (response.data && response.data.ok) {
         fetchOrders();
+      } else {
+        throw new Error(response.data?.message || `Failed to ${action} order`);
       }
     } catch (error) {
       console.error(`Failed to ${action} order:`, error);
+      alert(`Failed to ${action} order. Please try again.`);
     }
   };
 
-  const handleBulkAction = async (action) => {
-    if (selectedOrders.length === 0) return;
-
-    try {
-      setLoading(true);
-      
-      switch (action) {
-        case 'cancel':
-          // Cancel each selected order individually
-          const cancelPromises = selectedOrders.map(orderId => 
-            advertiserAPI.cancelOrder(orderId)
-          );
-          
-          try {
-            await Promise.all(cancelPromises);
-            console.log(`Successfully cancelled ${selectedOrders.length} orders`);
-          } catch (error) {
-            console.error('Some orders failed to cancel:', error);
-          }
-          break;
-          
-        case 'export':
-          // For export, we'll create a CSV download
-          exportOrdersToCSV();
-          break;
-          
-        default:
-          console.warn(`Unknown bulk action: ${action}`);
-          return;
-      }
-      
-      // Refresh the orders list
-      fetchOrders();
-      setSelectedOrders([]);
-    } catch (error) {
-      console.error(`Failed to perform bulk ${action}:`, error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  
 
   const exportOrdersToCSV = () => {
     // Create CSV content from selected orders
@@ -242,11 +189,13 @@ const OrderManagement = () => {
     const badges = {
       pending: { class: 'bg-yellow-900/30 text-yellow-400 border border-yellow-500/30', icon: ClockIcon, text: 'Pending' },
       accepted: { class: 'bg-blue-900/30 text-blue-400 border border-blue-500/30', icon: CheckCircleIcon, text: 'Accepted' },
+      approved: { class: 'bg-blue-900/30 text-blue-400 border border-blue-500/30', icon: CheckCircleIcon, text: 'Approved' },
       in_progress: { class: 'bg-purple-900/30 text-purple-400 border border-purple-500/30', icon: ClockIcon, text: 'In Progress' },
       content_submitted: { class: 'bg-green-900/30 text-green-400 border border-green-500/30', icon: DocumentTextIcon, text: 'Content Submitted' },
       revision_requested: { class: 'bg-orange-900/30 text-orange-400 border border-orange-500/30', icon: ExclamationTriangleIcon, text: 'Revision Requested' },
       completed: { class: 'bg-green-900/30 text-green-400 border border-green-500/30', icon: CheckCircleIcon, text: 'Completed' },
-      cancelled: { class: 'bg-red-900/30 text-red-400 border border-red-500/30', icon: XCircleIcon, text: 'Cancelled' }
+      cancelled: { class: 'bg-red-900/30 text-red-400 border border-red-500/30', icon: XCircleIcon, text: 'Cancelled' },
+      rejected: { class: 'bg-red-900/30 text-red-400 border border-red-500/30', icon: XCircleIcon, text: 'Rejected' }
     };
 
     const badge = badges[status] || badges.pending;
@@ -405,148 +354,8 @@ const OrderManagement = () => {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-[#1a1a1a] rounded-lg shadow p-6 border border-[#bff747]/30">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-[#bff747]">Filter Orders</h3>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="text-[#bff747] hover:text-[#a8e035]"
-          >
-            {showFilters ? 'Hide Filters' : 'Show Filters'}
-          </button>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Search */}
-          <div>
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search orders..."
-                className="pl-10 pr-4 py-2 w-full border border-[#bff747]/30 rounded-md focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747] placeholder-gray-500"
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Status Filter */}
-          <div>
-            <select
-              value={filters.status}
-              onChange={(e) => handleFilterChange('status', e.target.value)}
-              className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747]"
-            >
-              <option value="all" className="bg-[#0c0c0c]">All Status</option>
-              <option value="pending" className="bg-[#0c0c0c]">Pending</option>
-              <option value="accepted" className="bg-[#0c0c0c]">Accepted</option>
-              <option value="in_progress" className="bg-[#0c0c0c]">In Progress</option>
-              <option value="content_submitted" className="bg-[#0c0c0c]">Content Submitted</option>
-              <option value="revision_requested" className="bg-[#0c0c0c]">Revision Requested</option>
-              <option value="completed" className="bg-[#0c0c0c]">Completed</option>
-              <option value="cancelled" className="bg-[#0c0c0c]">Cancelled</option>
-            </select>
-          </div>
-
-          {/* Date Range */}
-          <div>
-            <select
-              value={filters.dateRange}
-              onChange={(e) => handleFilterChange('dateRange', e.target.value)}
-              className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747]"
-            >
-              <option value="all" className="bg-[#0c0c0c]">All time</option>
-              <option value="7d" className="bg-[#0c0c0c]">Last 7 days</option>
-              <option value="30d" className="bg-[#0c0c0c]">Last 30 days</option>
-              <option value="90d" className="bg-[#0c0c0c]">Last 90 days</option>
-            </select>
-          </div>
-
-          {/* Sort */}
-          <div>
-            <select
-              value={`${filters.sortBy}:${filters.sortOrder}`}
-              onChange={(e) => {
-                const [sortBy, sortOrder] = e.target.value.split(':');
-                setFilters(prev => ({
-                  ...prev,
-                  sortBy,
-                  sortOrder
-                }));
-                setCurrentPage(1);
-                
-                // Update URL params
-                const newFilters = { ...filters, sortBy, sortOrder };
-                const newSearchParams = new URLSearchParams();
-                Object.keys(newFilters).forEach(key => {
-                  if (newFilters[key] && newFilters[key] !== 'all') {
-                    newSearchParams.set(key, newFilters[key]);
-                  }
-                });
-                setSearchParams(newSearchParams);
-              }}
-              className="w-full border border-[#bff747]/30 rounded-md px-3 py-2 focus:ring-[#bff747] focus:border-[#bff747] bg-[#0c0c0c] text-[#bff747]"
-            >
-              <option value="createdAt:desc" className="bg-[#0c0c0c]">Newest First</option>
-              <option value="createdAt:asc" className="bg-[#0c0c0c]">Oldest First</option>
-              <option value="deadline:asc" className="bg-[#0c0c0c]">Deadline (Urgent First)</option>
-              <option value="totalPrice:desc" className="bg-[#0c0c0c]">Highest Amount</option>
-              <option value="totalPrice:asc" className="bg-[#0c0c0c]">Lowest Amount</option>
-            </select>
-          </div>
-        </div>
-
-        {showFilters && (
-          <div className="mt-4 pt-4 border-t border-[#bff747]/30">
-            <div className="flex justify-between items-center">
-              <button
-                onClick={() => {
-                  setFilters({
-                    search: '',
-                    status: 'all',
-                    dateRange: '30d',
-                    sortBy: 'created_desc'
-                  });
-                  setSearchParams({});
-                }}
-                className="text-sm text-gray-400 hover:text-[#bff747]"
-              >
-                Clear All Filters
-              </button>
-              <div className="text-sm text-gray-400">
-                {orders.length} orders found
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Bulk Actions */}
-      {selectedOrders.length > 0 && (
-        <div className="bg-blue-900/30 border border-blue-500/30 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-blue-400">
-              {selectedOrders.length} orders selected
-            </span>
-            <div className="flex space-x-2">
-              <button
-                onClick={() => handleBulkAction('cancel')}
-                className="px-3 py-1 text-sm bg-red-900/30 text-red-400 rounded hover:bg-red-900/50 border border-red-500/30"
-              >
-                Cancel Selected
-              </button>
-              <button
-                onClick={() => handleBulkAction('export')}
-                className="px-3 py-1 text-sm bg-[#2a2a2a] text-[#bff747] rounded hover:bg-[#3a3a3a] border border-[#bff747]/30"
-              >
-                Export Selected
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+     
 
       {/* Orders Table */}
       <div className="bg-[#1a1a1a] rounded-lg shadow overflow-hidden border border-[#bff747]/30">

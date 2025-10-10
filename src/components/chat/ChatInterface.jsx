@@ -28,6 +28,7 @@ const ChatInterface = ({ chatId, chatType = 'order', onClose }) => {
     isUserOnline,
     markAsRead,
     chats,
+    setChats, // This should be available from useChat
     loadChats // Added loadChats to ensure chats are loaded
   } = useChat();
 
@@ -77,33 +78,6 @@ const ChatInterface = ({ chatId, chatType = 'order', onClose }) => {
     return 'Chat';
   };
 
-  // Get participant name by user ID with fallback to message sender name
-  const getParticipantName = (userId) => {
-    if (!currentChat || !currentChat.participants) {
-      // Fallback to message sender name if available
-      const messageWithSender = sortedMessages.find(msg => msg.senderId === userId);
-      if (messageWithSender && messageWithSender.senderName) {
-        return messageWithSender.senderName;
-      }
-      return 'Unknown User';
-    }
-    
-    const participant = currentChat.participants.find(p => p.userId?._id === userId);
-    if (participant && participant.userId) {
-      const firstName = participant.userId.firstName || '';
-      const lastName = participant.userId.lastName || '';
-      const name = `${firstName} ${lastName}`.trim();
-      return name || 'Unknown User';
-    }
-    
-    // Fallback to message sender name if available
-    const messageWithSender = sortedMessages.find(msg => msg.senderId === userId);
-    if (messageWithSender && messageWithSender.senderName) {
-      return messageWithSender.senderName;
-    }
-    
-    return 'Unknown User';
-  };
 
   // Get participant role by user ID from chat participants
   const getParticipantRole = (userId) => {
@@ -222,7 +196,9 @@ const ChatInterface = ({ chatId, chatType = 'order', onClose }) => {
   // Mark messages as read when chat is active
   useEffect(() => {
     if (activeChat === chatId && messages.length > 0) {
-      const unreadMessages = messages.filter(msg => !msg.isRead?.includes(user?._id));
+      const unreadMessages = messages.filter(msg => 
+        !msg.readBy?.some(rb => rb.userId === user?._id)
+      );
       if (unreadMessages.length > 0) {
         markAsRead(chatId, unreadMessages.map(msg => msg._id));
       }
@@ -309,7 +285,7 @@ const ChatInterface = ({ chatId, chatType = 'order', onClose }) => {
   };
 
   const getMessageStatusIcon = (msg) => {
-    if (msg.isRead && msg.isRead.length > 0) {
+    if (msg.readBy && msg.readBy.length > 0) {
       return <span className="text-[#bff747]">✓✓</span>;
     }
     if (msg.sent) {
@@ -374,7 +350,7 @@ const ChatInterface = ({ chatId, chatType = 'order', onClose }) => {
         {/* Messages Area */}
         <div 
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto p-4 bg-[#0c0c0c]"
+          className="flex-1 overflow-y-auto p-4 bg-[#0c0c0c] scrollbar-hidden"
           onScroll={handleScroll}
         >
           {sortedMessages.length === 0 ? (
@@ -391,34 +367,23 @@ const ChatInterface = ({ chatId, chatType = 'order', onClose }) => {
           ) : (
             <div className="space-y-4">
               {sortedMessages.map((msg, index) => {
-                // Determine if we should show the sender name (for received messages)
-                const showSenderName = msg.senderId !== user?._id && 
-                  (index === 0 || sortedMessages[index - 1].senderId !== msg.senderId);
-              
+               
                 // Get sender role to determine alignment
                 const senderRole = getMessageSenderRole(msg);
-                const isSenderCurrentUser = msg.senderId === user?._id;
-                
-                // Determine alignment based on sender role (WhatsApp style)
+                const senderId = typeof msg.senderId === 'object' ? msg.senderId._id : msg.senderId;
+                const isSenderCurrentUser = senderId === user?._id;
+
+                // Determine alignment based on sender identity (consistent approach for both real-time and refresh)
                 let justifyContent;
                 let isOwnMessage;
                 
+                // Consistent logic: messages from current user go to the right, others to the left
                 if (isSenderCurrentUser) {
-                  // Current user's messages go to the right
                   justifyContent = 'justify-end';
                   isOwnMessage = true;
-                } else if (senderRole === 'publisher') {
-                  // Publisher messages go to the left
+                } else {
                   justifyContent = 'justify-start';
                   isOwnMessage = false;
-                } else if (senderRole === 'advertiser') {
-                  // Advertiser messages go to the right
-                  justifyContent = 'justify-end';
-                  isOwnMessage = false;
-                } else {
-                  // Fallback - current user's messages to the right, others to the left
-                  justifyContent = isSenderCurrentUser ? 'justify-end' : 'justify-start';
-                  isOwnMessage = isSenderCurrentUser;
                 }
               
                 return (
@@ -427,12 +392,7 @@ const ChatInterface = ({ chatId, chatType = 'order', onClose }) => {
                     className={`flex ${justifyContent}`}
                   >
                     <div className={`flex flex-col ${isOwnMessage ? 'items-end' : 'items-start'} max-w-xs sm:max-w-md md:max-w-lg lg:max-w-xl`}>
-                      
-                      {showSenderName && (
-                        <div className={`text-xs mb-1 ${isOwnMessage ? 'text-[#0c0c0c]' : 'text-gray-400'}`}>
-                          {getParticipantName(msg.senderId)}
-                        </div>
-                      )}
+
                       
                       <div className={`rounded-lg px-4 py-2 ${isOwnMessage ? 'bg-[#bff747] text-[#0c0c0c]' : 'bg-[#1a1a1a] text-gray-200 border border-[#bff747]/30'}`}>
                         {msg.replyTo && (
@@ -449,7 +409,7 @@ const ChatInterface = ({ chatId, chatType = 'order', onClose }) => {
                             </span>
                           </div>
                         )}
-                        <p className="text-sm">{msg.content || 'No content'}</p>
+                        <p className="text-sm break-words whitespace-normal max-w-[200px]">{msg.content || 'No content'}</p>
                         
                         {msg.attachments && msg.attachments.length > 0 && (
                           <div className="mt-2 space-y-2">
@@ -579,6 +539,17 @@ const ChatInterface = ({ chatId, chatType = 'order', onClose }) => {
           </div>
         </div>
       </div>
+      
+      {/* Custom scrollbar styles */}
+      <style jsx>{`
+        .scrollbar-hidden::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hidden {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 };

@@ -1,9 +1,8 @@
-// src/layouts/PublisherLayout.jsx
+// src/pages/publisher/PublisherLayout.jsx
 import React from "react";
 import { Outlet } from "react-router-dom";
-import Sidebar from "../pages/publisher/Sidebar";
-import Header from "../pages/publisher/Header";
-import Footer from "../pages/publisher/Footer";
+import Sidebar from "./Sidebar";
+import Header from "./Header";
 
 function PublisherLayout() {
   return (
@@ -19,14 +18,13 @@ function PublisherLayout() {
         <Sidebar />
 
         {/* Page Content + Footer (scroll together) */}
-        <div className="flex-1 bg-[#0c0c0c] overflow-y-auto p-6 lg:ml-0">
+        <div className="flex-1 bg-[#0c0c0c] overflow-y-auto ">
           {/* Outlet renders page content */}
-          <div className="min-h-full pb-6 pt-16 lg:pt-0">
+          <div className="min-h-full   ">
             <Outlet />
           </div>
 
           {/* Footer renders below page content */}
-          <Footer />
         </div>
       </div>
     </div>

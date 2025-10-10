@@ -49,11 +49,11 @@ const AdvertiserSidebar = ({ open, setOpen, walletBalance }) => {
       href: '/advertiser/projects',
       icon: FolderIcon,
     },
-    {
-      name: 'Wallet',
-      href: '/advertiser/wallet',
-      icon: CurrencyDollarIcon,
-    }
+    // {
+    //   name: 'Wallet',
+    //   href: '/advertiser/wallet',
+    //   icon: CurrencyDollarIcon,
+    // }
   ];
 
   const isActivePath = (href, end = false) => {
@@ -77,8 +77,8 @@ const AdvertiserSidebar = ({ open, setOpen, walletBalance }) => {
   return (
     <>
       {/* Desktop Sidebar */}
-      <div className={`hidden lg:flex lg:flex-shrink-0 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
-        <div className="flex flex-col h-screen bg-[#0c0c0c] border-r border-[#bff747]/30">
+      <div className={`hidden lg:flex lg:flex-shrink-0 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-59'}`}>
+        <div className="flex flex-col overflow-y-auto bg-[#0c0c0c] border-r border-[#bff747]/30">
           {/* Logo and Collapse Button */}
           <div className="flex items-center justify-between px-4 pt-5 pb-4 border-b border-[#bff747]/30">
             {!isCollapsed ? (

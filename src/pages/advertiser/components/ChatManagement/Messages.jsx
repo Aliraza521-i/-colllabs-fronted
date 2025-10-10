@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
-import { useChat } from '../../../contexts/ChatContext';
-import { useAuth } from '../../../contexts/AuthContext';
-import ChatSidebar from '../../../components/chat/ChatSidebar';
-import ChatInterface from '../../../components/chat/ChatInterface';
+import { useChat } from '../../../../contexts/ChatContext';
+import { useAuth } from '../../../../contexts/AuthContext';
+import ChatSidebar from '../../../../components/chat/ChatSidebar';
+import ChatInterface from '../../../../components/chat/ChatInterface';
 import {
   ChatBubbleLeftRightIcon,
   ExclamationCircleIcon
@@ -67,7 +67,7 @@ const Messages = () => {
     
     // Update URL to reflect the selected chat
     if (chat._id) {
-      navigate(`/publisher/chat/${chat._id}`);
+      navigate(`/advertiser/messages/${chat._id}`);
     }
   };
 
@@ -76,7 +76,7 @@ const Messages = () => {
     setShowMobileInterface(false);
     
     // Update URL to remove chat ID
-    navigate(`/publisher/chat`);
+    navigate(`/advertiser/messages`);
   };
 
   // Reset chat selection attempt when URL changes
@@ -145,21 +145,7 @@ const Messages = () => {
         
         {/* Chat Interface */}
         <div className="flex-1 flex flex-col h-full">
-          {/* Header with connection status */}
-          <div className="bg-[#0c0c0c] border-b border-[#bff747]/30 p-4 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-xl font-semibold text-[#bff747]">Messages</h1>
-                <p className="text-sm text-gray-400">
-                  {activeChat 
-                    ? `${activeChat.type === 'order' ? 'Order Discussion' : 'Support Chat'}`
-                    : 'Select a conversation to start messaging'
-                  }
-                </p>
-              </div>
-              <ConnectionStatus />
-            </div>
-          </div>
+         
           
           {activeChat ? (
             <div className="flex-1 min-h-0">

@@ -11,7 +11,7 @@ import {
   ShoppingBagIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../../../contexts/CartContext';
 
 const AdvertiserHeader = ({ setSidebarOpen, user, walletBalance, onWalletUpdate }) => {
@@ -20,9 +20,36 @@ const AdvertiserHeader = ({ setSidebarOpen, user, walletBalance, onWalletUpdate 
   const { logout } = useAuth();
   const { cart } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const userMenuRef = useRef(null);
   const walletMenuRef = useRef(null);
+
+  // Function to get the current tab name based on the URL
+  const getCurrentTabName = () => {
+    const path = location.pathname;
+    
+    if (path === '/advertiser' || path === '/advertiser/') {
+      return 'Dashboard';
+    } else if (path.includes('/advertiser/browse')) {
+      return 'Browse Websites';
+    } else if (path.includes('/advertiser/orders')) {
+      return 'My Orders';
+    } else if (path.includes('/advertiser/cart')) {
+      return 'Shopping Cart';
+    } else if (path.includes('/advertiser/messages')) {
+      return 'Messages';
+    } else if (path.includes('/advertiser/projects')) {
+      return 'My Projects';
+    } else if (path.includes('/advertiser/wallet')) {
+      return 'Wallet';
+    } else if (path.includes('/advertiser/profile')) {
+      return 'Profile';
+    }
+    
+    // Default fallback
+    return 'Dashboard';
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -57,8 +84,12 @@ const AdvertiserHeader = ({ setSidebarOpen, user, walletBalance, onWalletUpdate 
 
       {/* Header content without search bar */}
       <div className="flex-1 px-4 flex justify-between items-center">
-        {/* Left side - empty space where search bar was */}
-        <div className="flex-1"></div>
+        {/* Left side - Current tab name */}
+        <div className="flex items-center">
+          <h1 className="text-xl font-semibold text-[#bff747]">
+            {getCurrentTabName()}
+          </h1>
+        </div>
 
         {/* Right side - Quick actions and User menu */}
         <div className="ml-4 flex items-center md:ml-6 space-x-4">

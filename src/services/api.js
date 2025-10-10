@@ -168,6 +168,7 @@ export const adminAPI = {
   getDashboard: () => api.get('/admin/dashboard'),
   getUsers: (params, config = {}) => api.get('/admin/users', { params, ...config }),
   manageUser: (userId, data) => api.put(`/admin/users/${userId}/manage`, data),
+  updateUserBalance: (userId, data) => api.put(`/admin/users/${userId}/balance`, data),
   suspendUser: (userId, reason) => api.put(`/admin/users/${userId}/manage`, { action: 'suspend', reason }),
   activateUser: (userId) => api.put(`/admin/users/${userId}/manage`, { action: 'activate' }),
   deleteUser: (userId) => api.delete(`/admin/users/${userId}`),

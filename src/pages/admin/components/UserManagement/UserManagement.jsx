@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   UsersIcon,
-  MagnifyingGlassIcon,
-  FunnelIcon,
   EyeIcon,
   PencilIcon,
   TrashIcon,
@@ -11,12 +9,17 @@ import {
   EnvelopeIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon
+  PlusIcon,
+  MinusIcon,
+  CurrencyDollarIcon
 } from '@heroicons/react/24/outline';
 import { adminAPI } from '../../../../services/api';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../contexts/AuthContext';
+import UserTable from './UserTable';
+import UserFilters from './UserFilters';
+import UserPagination from './UserPagination';
+import UserHeader from './UserHeader';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -28,7 +31,13 @@ const UserManagement = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [showUserModal, setShowUserModal] = useState(false);
+  const [showBalanceModal, setShowBalanceModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [balanceAction, setBalanceAction] = useState('add');
+  const [amount, setAmount] = useState('');
+  const [description, setDescription] = useState('');
+  const [balanceError, setBalanceError] = useState('');
+  const [balanceSuccess, setBalanceSuccess] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
   const usersPerPage = 20;
@@ -101,6 +110,52 @@ const UserManagement = () => {
     }
   };
 
+  // Add this new function for balance management
+  const handleUpdateBalance = async (e) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!amount || parseFloat(amount) <= 0) {
+      setBalanceError('Please enter a valid amount');
+      return;
+    }
+    
+    if (!description.trim()) {
+      setBalanceError('Please enter a description');
+      return;
+    }
+    
+    try {
+      setActionLoading(true);
+      setBalanceError('');
+      
+      const response = await adminAPI.updateUserBalance(selectedUser._id, {
+        amount: parseFloat(amount),
+        action: balanceAction,
+        description: description.trim()
+      });
+      
+      if (response.data && response.data.ok) {
+        setBalanceSuccess('Balance updated successfully');
+        // Refresh the user list
+        fetchUsers();
+        // Close modal after a delay
+        setTimeout(() => {
+          setShowBalanceModal(false);
+          setSelectedUser(null);
+          setAmount('');
+          setDescription('');
+          setBalanceSuccess('');
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('Failed to update balance:', error);
+      setBalanceError(error.response?.data?.message || 'Failed to update balance');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleBulkAction = async (action) => {
     if (selectedUsers.length === 0) return;
 
@@ -134,6 +189,11 @@ const UserManagement = () => {
       setSelectedUsers(users.map(user => user._id));
     }
   };
+const closeUserModal = () => {
+  setShowUserModal(false);
+  setSelectedUser(null);
+};
+
 
   const getUserStatusBadge = (user) => {
     if (user.isSuspended) {
@@ -214,53 +274,23 @@ const UserManagement = () => {
         </div>
       </div>
 
+      <UserHeader 
+        selectedUsers={selectedUsers}
+        handleBulkAction={handleBulkAction}
+        fetchUsers={fetchUsers}
+        loading={loading}
+        actionLoading={actionLoading}
+      />
+
       {/* Filters and Search */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {/* Search */}
-          <div className="md:col-span-2">
-            <div className="relative">
-              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search users by name, email..."
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Role Filter */}
-          <div>
-            <select
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="all">All Roles</option>
-              <option value="publisher">Publishers</option>
-              <option value="advertiser">Advertisers</option>
-              <option value="admin">Admins</option>
-            </select>
-          </div>
-
-          {/* Status Filter */}
-          <div>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="suspended">Suspended</option>
-              <option value="unverified">Unverified</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      <UserFilters
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        selectedRole={selectedRole}
+        setSelectedRole={setSelectedRole}
+        selectedStatus={selectedStatus}
+        setSelectedStatus={setSelectedStatus}
+      />
 
       {/* Users Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -281,235 +311,272 @@ const UserManagement = () => {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Select
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Websites
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Orders
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Balance
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Earnings
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Joined
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Active
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {users.map((user) => (
-                <tr key={user._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="checkbox"
-                      checked={selectedUsers.includes(user._id)}
-                      onChange={() => handleSelectUser(user._id)}
-                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10">
-                        <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                          <span className="text-sm font-medium text-gray-700">
-                            {user.firstName?.[0]}{user.lastName?.[0]}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {user.firstName} {user.lastName}
-                        </div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getRoleBadge(user.role)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getUserStatusBadge(user)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.stats?.websites || 0}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.stats?.orders || 0}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${user.stats?.balance?.toFixed(2) || '0.00'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${user.stats?.totalEarnings?.toFixed(2) || '0.00'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(user.createdAt)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.lastLoginAt ? formatDate(user.lastLoginAt) : 'Never'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={() => {
-                          setSelectedUser(user);
-                          setShowUserModal(true);
-                        }}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="View Details"
-                      >
-                        <EyeIcon className="h-4 w-4" />
-                      </button>
-                      
-                      {user.isSuspended ? (
-                        <button
-                          onClick={() => handleUserAction(user._id, 'activate')}
-                          className="text-green-600 hover:text-green-900"
-                          title="Activate User"
-                          disabled={actionLoading}
-                        >
-                          <LockOpenIcon className="h-4 w-4" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleUserAction(user._id, 'suspend', { reason: 'Admin action' })}
-                          className="text-red-600 hover:text-red-900"
-                          title="Suspend User"
-                          disabled={actionLoading}
-                        >
-                          <LockClosedIcon className="h-4 w-4" />
-                        </button>
-                      )}
-                      
-                      <button
-                        onClick={() => {/* Handle email */}}
-                        className="text-purple-600 hover:text-purple-900"
-                        title="Send Email"
-                      >
-                        <EnvelopeIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {users.length === 0 && (
-          <div className="text-center py-12">
-            <UsersIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No users found</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Try adjusting your search criteria
-            </p>
-          </div>
-        )}
+        <UserTable
+          users={users}
+          selectedUsers={selectedUsers}
+          handleSelectUser={handleSelectUser}
+          handleSelectAll={handleSelectAll}
+          getUserStatusBadge={getUserStatusBadge}
+          getRoleBadge={getRoleBadge}
+          formatDate={formatDate}
+          setShowUserModal={setShowUserModal}
+          setSelectedUser={setSelectedUser}
+          setShowBalanceModal={setShowBalanceModal}
+          handleUserAction={handleUserAction}
+          actionLoading={actionLoading}
+          totalPages={totalPages}
+          usersPerPage={usersPerPage}
+        />
       </div>
 
       {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-lg shadow">
-          <div className="flex-1 flex justify-between sm:hidden">
-            <button
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-              className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
-          <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+      <UserPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        setCurrentPage={setCurrentPage}
+        usersPerPage={usersPerPage}
+      />
+
+      {/* User Details Modal */}
+  {showUserModal && selectedUser && (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+    onClick={closeUserModal} // closes when clicking outside
+  >
+    <div
+      className="bg-white rounded-lg shadow-xl sm:max-w-4xl w-full mx-4"
+      onClick={(e) => e.stopPropagation()} // stops clicks inside from closing
+    >
+      <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">
+            User Details: {selectedUser.firstName} {selectedUser.lastName}
+          </h3>
+          <button
+            onClick={closeUserModal} // close on cross
+            className="text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="border-b border-gray-200 mb-4">
+          <nav className="-mb-px flex space-x-8">
+            {['profile', 'activity', 'websites', 'orders'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => {/* if you keep activeTab state, update it here */}}
+                className="py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Body (example: profile content) */}
+        <div className="max-h-96 overflow-y-auto space-y-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-700">
-                Showing page <span className="font-medium">{currentPage}</span> of{' '}
-                <span className="font-medium">{totalPages}</span>
-              </p>
+              <label className="block text-sm font-medium text-gray-700">Email</label>
+              <p className="mt-1 text-sm text-gray-900">{selectedUser.email}</p>
             </div>
             <div>
-              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  <ChevronLeftIcon className="h-5 w-5" />
-                </button>
-                
-                {/* Page numbers */}
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const pageNum = i + 1;
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => setCurrentPage(pageNum)}
-                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                        currentPage === pageNum
-                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
-                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
-                
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  <ChevronRightIcon className="h-5 w-5" />
-                </button>
-              </nav>
+              <label className="block text-sm font-medium text-gray-700">Phone</label>
+              <p className="mt-1 text-sm text-gray-900">{selectedUser.phoneNumber || 'Not provided'}</p>
+            </div>
+            {/* other fields... */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Account Balance</label>
+              <p className="mt-1 text-sm text-gray-900">
+                ${selectedUser.stats?.balance?.toFixed(2) || '0.00'}
+              </p>
             </div>
           </div>
         </div>
-      )}
+      </div>
 
-      {/* User Details Modal */}
-      {showUserModal && selectedUser && (
-        <UserDetailsModal
-          user={selectedUser}
-          onClose={() => {
-            setShowUserModal(false);
-            setSelectedUser(null);
-          }}
-          onAction={handleUserAction}
-          loading={actionLoading}
-        />
-      )}
+      {/* Footer with actions — use your existing handleUserAction */}
+      <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+        <div className="flex space-x-3">
+          {selectedUser.isSuspended ? (
+            <button
+              onClick={() => handleUserAction(selectedUser._id, 'activate')}
+              disabled={actionLoading}
+              className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 disabled:opacity-50 sm:text-sm"
+            >
+              Activate User
+            </button>
+          ) : (
+            <button
+              onClick={() => handleUserAction(selectedUser._1d, 'suspend', { reason: 'Admin action' })}
+              disabled={actionLoading}
+              className="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 disabled:opacity-50 sm:text-sm"
+            >
+              Suspend User
+            </button>
+          )}
+
+          <button
+            onClick={closeUserModal}
+            className="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 sm:text-sm"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+
+
+      {/* Balance Management Modal */}
+    {showBalanceModal && selectedUser && (
+  <div
+    className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+    onClick={() => setShowBalanceModal(false)} // closes when clicking outside
+  >
+    <div
+      className="bg-white rounded-lg shadow-xl sm:max-w-lg w-full mx-4"
+      onClick={(e) => e.stopPropagation()} // stops click inside from closing
+    >
+      <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium text-gray-900">
+            Manage Balance for {selectedUser.firstName} {selectedUser.lastName}
+          </h3>
+          <button
+            onClick={() => setShowBalanceModal(false)} // close on cross
+            className="text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="mt-2">
+          <div className="bg-white p-4 rounded-lg mb-4 border border-gray-200">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-gray-500">Current Balance</span>
+              <span className="text-lg font-bold text-gray-900">
+                ${selectedUser.stats?.balance?.toFixed(2) || '0.00'}
+              </span>
+            </div>
+          </div>
+
+          {balanceError && (
+            <div className="mb-4 text-sm text-red-600 bg-red-50 p-3 rounded-md">
+              {balanceError}
+            </div>
+          )}
+
+          {balanceSuccess && (
+            <div className="mb-4 text-sm text-green-600 bg-green-50 p-3 rounded-md">
+              {balanceSuccess}
+            </div>
+          )}
+
+          <form onSubmit={handleUpdateBalance}>
+            <div className="space-y-4">
+              {/* Action Buttons */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Action
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBalanceAction('add')}
+                    className={`flex items-center justify-center px-4 py-2 border rounded-md ${
+                      balanceAction === 'add'
+                        ? 'bg-green-100 border-green-500 text-green-700'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <PlusIcon className="h-4 w-4 mr-1" />
+                    Add Funds
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBalanceAction('deduct')}
+                    className={`flex items-center justify-center px-4 py-2 border rounded-md ${
+                      balanceAction === 'deduct'
+                        ? 'bg-red-100 border-red-500 text-red-700'
+                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                    }`}
+                  >
+                    <MinusIcon className="h-4 w-4 mr-1" />
+                    Deduct Funds
+                  </button>
+                </div>
+              </div>
+
+              {/* Amount */}
+              <div>
+                <label
+                  htmlFor="amount"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Amount ($)
+                </label>
+                <input
+                  type="number"
+                  id="amount"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  min="0.01"
+                  step="0.01"
+                  placeholder="0.00"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label
+                  htmlFor="description"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Reason for balance adjustment..."
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="mt-5 sm:grid sm:grid-cols-2 sm:gap-3">
+              <button
+                type="submit"
+                disabled={actionLoading}
+                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm disabled:opacity-50"
+              >
+                {actionLoading ? 'Processing...' : 'Update Balance'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowBalanceModal(false)} // close on Cancel
+                className="w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:text-sm"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };
@@ -541,11 +608,11 @@ const UserDetailsModal = ({ user, onClose, onAction, loading }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto" onClick={() => onClose()}>
       <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose}></div>
+        <div className="fixed inset-0  bg-opacity-75 transition-opacity" onClick={(e) => e.stopPropagation()}></div>
 
-        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+        <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full" onClick={(e) => e.stopPropagation()}>
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">

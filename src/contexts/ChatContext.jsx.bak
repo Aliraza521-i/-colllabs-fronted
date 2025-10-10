@@ -23,7 +23,7 @@ export const ChatProvider = ({ children }) => {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [typingUsers, setTypingUsers] = useState({});
   const [unreadCounts, setUnreadCounts] = useState({});
-  const [notifications, setNotifications] = useState([]);
+  // Removed notifications state
   // New state for tracking highlighted chats
   const [highlightedChats, setHighlightedChats] = useState({});
 
@@ -202,202 +202,187 @@ export const ChatProvider = ({ children }) => {
       console.log('❌ Disconnected from chat server:', reason);
       setIsConnected(false);
       
-      if (reason === 'io server disconnect') {
-        // Server initiated disconnect, try to reconnect
-        handleReconnect();
+      // Attempt to reconnect if not intentional
+      if (reason !== 'io client disconnect') {
+        if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+          reconnectTimeoutRef.current = setTimeout(() => {
+            console.log(`Attempting to reconnect... (${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
+            reconnectAttemptsRef.current++;
+            connectSocket();
+          }, 1000 * reconnectAttemptsRef.current); // Exponential backoff
+        }
       }
+    });
+
+    socketInstance.on('reconnect', (attemptNumber) => {
+      console.log(`✅ Reconnected to chat server (attempt ${attemptNumber})`);
+      setIsConnected(true);
+      reconnectAttemptsRef.current = 0;
+    });
+
+    socketInstance.on('reconnect_attempt', (attemptNumber) => {
+      console.log(`🔄 Attempting to reconnect... (${attemptNumber}/${maxReconnectAttempts})`);
+    });
+
+    socketInstance.on('reconnect_failed', () => {
+      console.log('❌ Failed to reconnect after maximum attempts');
+      setIsConnected(false);
     });
 
     socketInstance.on('connect_error', (error) => {
       console.error('❌ Connection error:', error);
       setIsConnected(false);
-      handleReconnect();
     });
 
-    // Chat event listeners
-    setupChatEventListeners(socketInstance);
-  }, [token]);
+    // Chat events
+    socketInstance.on('chat_list', (chats) => {
+      setChats(chats);
+    });
 
-  const handleReconnect = useCallback(() => {
-    if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
-      console.log('Max reconnection attempts reached');
-      return;
-    }
+    socketInstance.on('online_users', (users) => {
+      setOnlineUsers(users);
+    });
 
-    const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 10000);
-    reconnectAttemptsRef.current++;
-
-    reconnectTimeoutRef.current = setTimeout(() => {
-      console.log(`Attempting to reconnect... (${reconnectAttemptsRef.current}/${maxReconnectAttempts})`);
-      connectSocket();
-    }, delay);
-  }, [connectSocket]);
-
-  const disconnectSocket = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
-    
-    if (socketRef.current) {
-      socketRef.current.disconnect();
-      socketRef.current = null;
-    }
-    
-    setSocket(null);
-    setIsConnected(false);
-    setMessages({});
-    setOnlineUsers([]);
-    setTypingUsers({});
-  }, []);
-
-  const setupChatEventListeners = (socketInstance) => {
-    // New message received
-    socketInstance.on('new_message', (data) => {
-      const { chatId, message } = data;
+    socketInstance.on('chat_created', (chat) => {
+      setChats(prev => [chat, ...prev]);
       
-      // Ensure message has required fields and proper sender information
-      const messageWithDefaults = {
-        _id: message._id || Date.now().toString(),
-        senderId: message.senderId || message.sender || '',
-        senderName: message.senderName || 'Unknown User',
-        senderRole: message.senderRole || 'user', // Ensure senderRole is preserved
-        content: message.content || '',
-        createdAt: message.createdAt || new Date(),
-        ...message
-      };
+      // Highlight the new chat for better visibility
+      setHighlightedChats(prev => ({
+        ...prev,
+        [chat._id]: true
+      }));
       
+      // Remove highlight after 5 seconds
+      setTimeout(() => {
+        setHighlightedChats(prev => ({
+          ...prev,
+          [chat._id]: false
+        }));
+      }, 5000);
+    });
+
+    socketInstance.on('message', (message) => {
+      const { chatId } = message;
+      
+      // Update messages for this chat
       setMessages(prev => ({
         ...prev,
-        [chatId]: [...(prev[chatId] || []), messageWithDefaults]
+        [chatId]: prev[chatId] ? [...prev[chatId], message] : [message]
       }));
-
-      // Update unread count if not in active chat and user is not the sender
-      if (activeChat !== chatId && messageWithDefaults.senderId !== user?._id) {
+      
+      // Update chat list to show latest message
+      setChats(prev => {
+        const chatIndex = prev.findIndex(chat => chat._id === chatId);
+        if (chatIndex === -1) return prev;
+        
+        const updatedChats = [...prev];
+        const updatedChat = {
+          ...updatedChats[chatIndex],
+          lastMessage: message.content,
+          lastActivity: message.timestamp,
+          unreadCount: activeChat === chatId ? 0 : (updatedChats[chatIndex].unreadCount || 0) + 1
+        };
+        
+        // Move updated chat to top
+        updatedChats.splice(chatIndex, 1);
+        updatedChats.unshift(updatedChat);
+        
+        return updatedChats;
+      });
+      
+      // Update unread counts if this chat is not currently active
+      if (activeChat !== chatId) {
         setUnreadCounts(prev => ({
           ...prev,
           [chatId]: (prev[chatId] || 0) + 1
         }));
         
-        // Highlight chat for the receiver (not the sender)
-        if (user && messageWithDefaults.senderId !== user._id) {
+        // Highlight the chat with new message
+        setHighlightedChats(prev => ({
+          ...prev,
+          [chatId]: true
+        }));
+        
+        // Remove highlight after 5 seconds
+        setTimeout(() => {
           setHighlightedChats(prev => ({
             ...prev,
-            [chatId]: true
+            [chatId]: false
           }));
-        }
+        }, 5000);
       }
-
-      // Update chat last message and move to top of list
-      setChats(prev => {
-        // Find the chat and update its last message
-        const updatedChats = prev.map(chat => 
-          chat._id === chatId 
-            ? { 
-                ...chat, 
-                lastMessage: messageWithDefaults, 
-                lastActivity: new Date(),
-                // Move to beginning of array to ensure it appears at top
-              }
-            : chat
-        );
-        
-        // Move the updated chat to the beginning of the array
-        const chatIndex = updatedChats.findIndex(chat => chat._id === chatId);
-        if (chatIndex > -1) {
-          const [updatedChat] = updatedChats.splice(chatIndex, 1);
-          updatedChats.unshift(updatedChat);
-        }
-        
-        return updatedChats;
-      });
     });
 
-    // Chat history received
-    socketInstance.on('chat_history', (data) => {
-      const { chatId, messages: chatMessages } = data;
-      
-      // Ensure all messages have required fields
-      const messagesWithDefaults = chatMessages.map(msg => ({
-        _id: msg._id || Date.now().toString(),
-        senderId: msg.senderId || msg.sender || '',
-        senderName: msg.senderName || 'Unknown User',
-        senderRole: msg.senderRole || 'user', // Ensure senderRole is preserved
-        content: msg.content || '',
-        createdAt: msg.createdAt || new Date(),
-        ...msg
-      }));
-      
-      setMessages(prev => ({
-        ...prev,
-        [chatId]: messagesWithDefaults
-      }));
-    });
-
-    // User typing indicators
-    socketInstance.on('user_typing', (data) => {
-      const { chatId, userId, userName } = data;
+    socketInstance.on('typing_start', ({ chatId, userId, userName }) => {
       setTypingUsers(prev => ({
         ...prev,
-        [chatId]: { ...prev[chatId], [userId]: userName }
+        [chatId]: {
+          ...prev[chatId],
+          [userId]: userName
+        }
       }));
     });
 
-    socketInstance.on('user_stopped_typing', (data) => {
-      const { chatId, userId } = data;
+    socketInstance.on('typing_stop', ({ chatId, userId }) => {
       setTypingUsers(prev => {
-        const chatTyping = { ...prev[chatId] };
-        delete chatTyping[userId];
-        return {
-          ...prev,
-          [chatId]: chatTyping
-        };
+        const updated = { ...prev };
+        if (updated[chatId]) {
+          delete updated[chatId][userId];
+          if (Object.keys(updated[chatId]).length === 0) {
+            delete updated[chatId];
+          }
+        }
+        return updated;
       });
     });
 
-    // Online users list
-    socketInstance.on('online_users', (users) => {
-      setOnlineUsers(users);
-    });
-
-    // User status changes
-    socketInstance.on('user_status_changed', (data) => {
-      const { userId, status } = data;
-      setOnlineUsers(prev => prev.map(user => 
-        user.userId === userId ? { ...user, status } : user
-      ));
-    });
-
-    // Messages marked as read
-    socketInstance.on('messages_read', (data) => {
-      const { chatId, messageIds, readBy } = data;
+    socketInstance.on('message_read', ({ chatId, messageIds }) => {
+      // Update message read status
       setMessages(prev => ({
         ...prev,
         [chatId]: prev[chatId]?.map(msg => 
-          messageIds.includes(msg._id) 
-            ? { 
-                ...msg, 
-                readBy: [...(msg.readBy || []), { 
-                  userId: readBy, 
-                  readAt: new Date() 
-                }] 
-              }
-            : msg
+          messageIds.includes(msg._id) ? { ...msg, read: true } : msg
         ) || []
       }));
     });
-    
-    // Unread count updated
-    socketInstance.on('unread_count_updated', (data) => {
-      const { chatId, count } = data;
-      setUnreadCounts(prev => ({
+
+    socketInstance.on('chat_updated', (updatedChat) => {
+      setChats(prev => 
+        prev.map(chat => 
+          chat._id === updatedChat._id ? updatedChat : chat
+        )
+      );
+    });
+
+    socketInstance.on('message_updated', ({ chatId, messageId, updates }) => {
+      setMessages(prev => ({
         ...prev,
-        [chatId]: count
+        [chatId]: prev[chatId]?.map(msg => 
+          msg._id === messageId ? { ...msg, ...updates } : msg
+        ) || []
       }));
     });
-    
-    // Chat updated (move to top of sidebar)
-    socketInstance.on('chat_updated', (data) => {
-      const { chatId, lastMessage, lastActivity } = data;
+
+    socketInstance.on('chat_deleted', (chatId) => {
+      setChats(prev => prev.filter(chat => chat._id !== chatId));
+      setMessages(prev => {
+        const updated = { ...prev };
+        delete updated[chatId];
+        return updated;
+      });
+      if (activeChat === chatId) {
+        setActiveChat(null);
+      }
+    });
+
+    socketInstance.on('message_deleted', ({ chatId, messageId }) => {
+      setMessages(prev => ({
+        ...prev,
+        [chatId]: prev[chatId]?.filter(msg => msg._id !== messageId) || []
+      }));
+    });
+
+    socketInstance.on('last_message_updated', ({ chatId, lastMessage, lastActivity }) => {
       setChats(prev => {
         // Find the chat and update its last message
         const updatedChats = prev.map(chat => 
@@ -427,17 +412,30 @@ export const ChatProvider = ({ children }) => {
       console.log('File upload progress:', data);
     });
 
-    // Notifications
-    socketInstance.on('new_notification', (notification) => {
-      setNotifications(prev => [notification, ...prev]);
-    });
-
     // Error handling
     socketInstance.on('error', (error) => {
       console.error('Socket error:', error);
       // You could show a toast notification here
     });
-  };
+  }
+
+  const disconnectSocket = useCallback(() => {
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+      setSocket(null);
+      setIsConnected(false);
+    }
+    
+    // Clear any pending reconnection attempts
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    
+    // Reset reconnection attempts counter
+    reconnectAttemptsRef.current = 0;
+  }, []);
 
   useEffect(() => {
     if (user && token) {
@@ -465,7 +463,7 @@ export const ChatProvider = ({ children }) => {
     onlineUsers,
     typingUsers,
     unreadCounts,
-    notifications,
+    // Removed notifications
     highlightedChats, // Expose highlighted chats state
     setHighlightedChats, // Expose function to update highlighted chats
     

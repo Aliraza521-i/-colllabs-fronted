@@ -28,6 +28,13 @@ const WebsiteDetailsView = ({ website }) => {
   const trafficChartRef = useRef(null);
   const visibilityChartRef = useRef(null);
 
+  // Validate website prop
+  useEffect(() => {
+    if (website && (!website._id || typeof website._id !== 'string')) {
+      console.error('Invalid website data structure:', website);
+    }
+  }, [website]);
+
   if (!website) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -40,7 +47,24 @@ const WebsiteDetailsView = ({ website }) => {
     );
   }
 
-  
+  // Additional validation for website object
+  if (!website._id || typeof website._id !== 'string') {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-[#1a1a1a] rounded-xl shadow-lg p-8 border border-[#bff747]/30">
+          <div className="text-center py-12">
+            <h3 className="text-lg font-medium text-red-500">Invalid website data. Please try again.</h3>
+            <button 
+              onClick={() => navigate(-1)}
+              className="mt-4 bg-[#bff747] hover:bg-[#a8e035] text-[#0c0c0c] font-medium py-2 px-4 rounded-lg transition duration-200"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleContactPublisher = async () => {
     if (!user) {
@@ -48,19 +72,38 @@ const WebsiteDetailsView = ({ website }) => {
       return;
     }
     
+    // Validate website data before proceeding
+    if (!website || !website._id) {
+      console.error('Invalid website data:', website);
+      alert('Unable to contact publisher. Website data is invalid.');
+      return;
+    }
+    
+    // Additional validation to ensure website._id is a valid ObjectId string
+    if (typeof website._id !== 'string' || website._id.length !== 24) {
+      console.error('Invalid website ID format:', website._id);
+      alert('Unable to contact publisher. Website ID format is invalid.');
+      return;
+    }
+    
     try {
       setContactLoading(true);
       console.log('Sending websiteId to create chat:', website._id);
       console.log('Type of websiteId:', typeof website._id);
+      
       const response = await advertiserAPI.createWebsiteChat({ websiteId: website._id });
       console.log('Chat creation response:', response);
       if (response.data && response.data.ok) {
         // Navigate to the messages page with the chat room selected
         const chatId = response.data.data._id;
         navigate(`/advertiser/messages?chatId=${chatId}`);
+      } else {
+        throw new Error(response.data?.message || 'Failed to create chat');
       }
     } catch (error) {
       console.error('Failed to create chat:', error);
+      // Show error to user
+      alert('Failed to create chat. Please try again.');
     } finally {
       setContactLoading(false);
     }

@@ -14,15 +14,7 @@ const Header = () => {
   const { user, logout, switchRole } = useAuth();
   const { unreadCount } = useNotification();
 
-  const getBoxContent = () => {
-    if (location.pathname.includes("home")) return "My Home Dashboard";
-    if (location.pathname.includes("websites")) return "My Websites";
-    if (location.pathname.includes("sales")) return "Sales Overview";
-    if (location.pathname.includes("wallet")) return "Wallet Balance";
-    if (location.pathname.includes("contact")) return "Contact Support";
-    if (location.pathname.includes("profile")) return "My Profile";
-    return "Welcome Back, Publisher!";
-  };
+  
 
   const handleLogout = async () => {
     await logout();
@@ -30,19 +22,12 @@ const Header = () => {
   };
 
   return (
-    <header className="w-full bg-[#0c0c0c] text-white px-4 py-3 flex items-center justify-between relative shadow-lg">
+    <header className="w-full bg-[#0c0c0c] border-b-[#bff747] border text-white px-4 py-3 flex items-center justify-between relative shadow-lg">
       {/* Left: Logo - with margin to accommodate mobile menu button */}
       <div className="flex items-center gap-3 relative ml-12 lg:ml-0">
         <img src={logo} alt="logo" className="w-10 h-10 md:w-14 md:h-14 rounded-full border-2 border-[#bff747]" />
 
-        {/* 🔥 Floating Box Over Logo - Hidden on mobile */}
-        <div className="absolute top-12 md:top-14 left-12 md:left-16 w-[200px] md:w-[1000px] z-50 hidden sm:block">
-          <div className="bg-[#0c0c0c] border border-[#bff747] shadow-xl rounded-2xl px-3 py-1 md:px-4 md:py-2 text-center font-semibold">
-            <h2 className="text-xs md:text-sm lg:text-base text-[#bff747] truncate">
-              {getBoxContent()}
-            </h2>
-          </div>
-        </div>
+      
       </div>
 
       {/* Right: Actions */}

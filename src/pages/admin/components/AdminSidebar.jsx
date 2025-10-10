@@ -78,6 +78,12 @@ const AdminSidebar = ({ open, setOpen, notifications }) => {
       badge: getNotificationCount('withdrawal_request')
     },
     {
+      name: 'Balance Management',
+      href: '/admin/balances',
+      icon: CurrencyDollarIcon,
+      badge: 0
+    },
+    {
       name: 'Chats',
       href: '/admin/chats',
       icon: ChatBubbleLeftRightIcon,

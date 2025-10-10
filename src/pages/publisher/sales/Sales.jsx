@@ -98,13 +98,17 @@ const Sales = () => {
   };
 
   const handleSubmitLink = async (id) => {
+    const link = prompt('Please enter the published link:');
+    if (!link) return;
+    
     try {
-      // In a real implementation, this would call the appropriate API endpoint
-      console.log(`Submitting link for order ${id}`);
-      // For now, we'll just show an alert
-      alert(`Would submit link for order ${id}`);
-      // Refresh data after submission
-      // fetchSalesData();
+      const response = await orderAPI.submitOrder(id, { publishedUrl: link });
+      if (response.data && response.data.ok) {
+        // Refresh the data to show updated status
+        fetchSalesData();
+      } else {
+        throw new Error(response.data?.message || 'Failed to submit link');
+      }
     } catch (error) {
       console.error('Error submitting link:', error);
       alert('Failed to submit link. Please try again.');
@@ -112,13 +116,17 @@ const Sales = () => {
   };
 
   const handleReject = async (id) => {
+    const reason = prompt('Please provide a reason for rejecting this order:');
+    if (!reason) return;
+    
     try {
-      // In a real implementation, this would call the appropriate API endpoint
-      console.log(`Rejecting order ${id}`);
-      // For now, we'll just show an alert
-      alert(`Would reject order ${id}`);
-      // Refresh data after rejection
-      // fetchSalesData();
+      const response = await orderAPI.rejectOrder(id, { rejectionReason: reason });
+      if (response.data && response.data.ok) {
+        // Refresh the data to show updated status
+        fetchSalesData();
+      } else {
+        throw new Error(response.data?.message || 'Failed to reject order');
+      }
     } catch (error) {
       console.error('Error rejecting order:', error);
       alert('Failed to reject order. Please try again.');
@@ -126,11 +134,23 @@ const Sales = () => {
   };
 
   const handleSubmitFeedback = async (id) => {
+    const feedback = prompt('Please provide your feedback for this order:');
+    if (!feedback) return;
+    
     try {
-      // In a real implementation, this would call the appropriate API endpoint
-      console.log(`Submitting feedback for order ${id}`);
-      // For now, we'll just show an alert
-      alert(`Would submit feedback for order ${id}`);
+      // Submit feedback as a message using the existing orderAPI
+      const response = await orderAPI.addMessage(id, { 
+        message: `Feedback from publisher: ${feedback}`,
+        messageType: 'feedback'
+      });
+      
+      if (response.data && response.data.ok) {
+        alert('Feedback submitted successfully!');
+        // Refresh data after submission
+        fetchSalesData();
+      } else {
+        throw new Error(response.data?.message || 'Failed to submit feedback');
+      }
     } catch (error) {
       console.error('Error submitting feedback:', error);
       alert('Failed to submit feedback. Please try again.');
@@ -157,7 +177,63 @@ const Sales = () => {
   };
 
   const getActionButton = (item) => {
-    if (item.status === 'Completed' || item.status === 'Delivered') {
+    // For pending orders, show Accept/Reject buttons
+    // Map formatted status back to raw status for comparison
+    const statusMap = {
+      'New Request': 'pending',
+      'Approved': 'approved',
+      'In Progress': 'in_progress',
+      'Completed': 'completed',
+      'Delivered': 'delivered',
+      'Under Review': 'revision_requested',
+      'Rejected': 'rejected',
+      'Cancelled': 'cancelled'
+    };
+    
+    const rawStatus = statusMap[item.status] || item.status;
+    
+    // For pending orders, show Accept/Reject buttons
+    if (rawStatus === 'pending') {
+      return (
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={() => handleAcceptOrder(item.id)}
+            className="px-4 py-1.5 text-sm bg-[#bff747] text-[#0c0c0c] rounded-md hover:bg-[#a8e035] transition-colors font-medium w-full"
+          >
+            Accept
+          </button>
+          <button
+            onClick={() => handleRejectOrder(item.id)}
+            className="px-4 py-1.5 text-sm border border-gray-600 text-gray-300 rounded-md hover:bg-gray-700 hover:border-gray-500 transition-colors font-medium w-full"
+          >
+            Reject
+          </button>
+        </div>
+      );
+    }
+    
+    // For approved/in progress orders, show Submit Link/Reject buttons
+    if (rawStatus === 'approved' || rawStatus === 'in_progress') {
+      return (
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={() => handleSubmitLink(item.id)}
+            className="px-4 py-1.5 text-sm bg-[#bff747] text-[#0c0c0c] rounded-md hover:bg-[#a8e035] transition-colors font-medium w-full"
+          >
+            Submit Link
+          </button>
+          <button
+            onClick={() => handleRejectOrder(item.id)}
+            className="px-4 py-1.5 text-sm border border-gray-600 text-gray-300 rounded-md hover:bg-gray-700 hover:border-gray-500 transition-colors font-medium w-full"
+          >
+            Reject
+          </button>
+        </div>
+      );
+    }
+    
+    // For completed/delivered orders, show Submit Feedback button
+    if (rawStatus === 'completed' || rawStatus === 'delivered') {
       return (
         <button
           onClick={() => handleSubmitFeedback(item.id)}
@@ -167,6 +243,8 @@ const Sales = () => {
         </button>
       );
     }
+    
+    // Default case
     return (
       <button
         onClick={() => handleSubmitLink(item.id)}
@@ -175,6 +253,41 @@ const Sales = () => {
         Submit Link
       </button>
     );
+  };
+
+  // Handle order acceptance
+  const handleAcceptOrder = async (orderId) => {
+    try {
+      const response = await orderAPI.approveOrder(orderId, {});
+      if (response.data && response.data.ok) {
+        // Refresh the data to show updated status
+        fetchSalesData();
+      } else {
+        throw new Error(response.data?.message || 'Failed to accept order');
+      }
+    } catch (error) {
+      console.error('Error accepting order:', error);
+      alert('Failed to accept order. Please try again.');
+    }
+  };
+
+  // Handle order rejection
+  const handleRejectOrder = async (orderId) => {
+    const reason = prompt('Please provide a reason for rejecting this order:');
+    if (!reason) return;
+    
+    try {
+      const response = await orderAPI.rejectOrder(orderId, { rejectionReason: reason });
+      if (response.data && response.data.ok) {
+        // Refresh the data to show updated status
+        fetchSalesData();
+      } else {
+        throw new Error(response.data?.message || 'Failed to reject order');
+      }
+    } catch (error) {
+      console.error('Error rejecting order:', error);
+      alert('Failed to reject order. Please try again.');
+    }
   };
 
   const filteredData = salesData.filter(item =>
@@ -499,7 +612,7 @@ const Sales = () => {
                             fill="currentColor" 
                             viewBox="0 0 20 20"
                           >
-                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                           </svg>
                         ))}
                       </div>

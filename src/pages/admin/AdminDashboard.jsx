@@ -9,6 +9,7 @@ import AllWebsites from './components/WebsiteManagement/AllWebsites';
 import WebsiteMetrics from './components/WebsiteManagement/WebsiteMetrics';
 import OrderManagement from './components/OrderManagement/OrderManagement';
 import FinancialManagement from './components/FinancialManagement/FinancialManagement';
+import BalanceManagement from './components/FinancialManagement/BalanceManagement';
 import Analytics from './components/AnalyticManagement/Analytics';
 import SystemSettings from './components/SystemSetting/SystemSettings';
 import ProjectManagement from './components/ProjectManagement/ProjectManagement';
@@ -181,6 +182,10 @@ const AdminDashboard = () => {
             <Route 
               path="finance" 
               element={<FinancialManagement />} 
+            />
+            <Route 
+              path="balances" 
+              element={<BalanceManagement />} 
             />
             <Route 
               path="chats/*" 

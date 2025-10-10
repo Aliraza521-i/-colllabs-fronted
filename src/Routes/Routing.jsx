@@ -1,7 +1,7 @@
 import React from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import PublisherLayout from "../layouts/PublisherLayout";
+import PublisherLayout from "../pages/publisher/PublisherLayout";
 import Login from "../pages/Login";
 import Signup from "../pages/Signup";
 import Websites from "../pages/publisher/websites/Websites";
@@ -20,8 +20,8 @@ import VerificationError from "../pages/publisher/AddWebsite/confirmOS/Verificat
 import Profile from "../pages/publisher/Profile";
 // import ChooseOwnArticle from "../pages/publisher/ChooseOwnArticle";
 import ChatPage from "../pages/ChatPage";
-import Messages from "../pages/publisher/Message/Messages";
-import ChooseMyOwnArticle from "../pages/advertiser/components/OrderManagement/ChooseMyOwnArticle";
+import { Messages } from "../pages/publisher/components/ChatManagement";
+import ChooseMyOwnArticle from "../pages/advertiser/components/ShoppingCart/ChooseMyOwnArticle";
 import PublisherChooseOwnArticle from "../pages/publisher/sales/Article";
 import DepositPage from "../pages/advertiser/components/WalletManagement/DepositPage"; // Add this import
 
@@ -132,14 +132,16 @@ const Routing = () => {
           <Route path="sales" element={<Sales />} />
           {/* Re-added the article route as a separate page */}
           <Route path="sales/article" element={<PublisherChooseOwnArticle />} />
-          {/* <Route path="my-own-article" element={<ReceivedMyOwnArticle />} /> */}
+          {/* <Route path="my-own-article" element={<ReceivedMyOwnArticle />} /> */
+}
           <Route path="wallet" element={<Wallet />} />
           <Route path="contact" element={<Contact />} />
           <Route path="confirmOwnership" element={<ConfirmOnship />} />
           <Route path="descriptionprice" element={<DescriptionPricePage />} />
           <Route path="earn" element={<EarnSuccessPage />} />
           <Route path="profile" element={<Profile />} />
-          {/* <Route path="choose-own-article" element={<ChooseOwnArticle />} /> */}
+          {/* <Route path="choose-own-article" element={<ChooseOwnArticle />} /> */
+}
           {/* Update messages route to handle chatId parameter */}
           <Route path="messages" element={<Messages />} />
           <Route path="messages/:chatId" element={<Messages />} />
@@ -153,6 +155,9 @@ const Routing = () => {
           path="/advertiser/*"
           element={<AdvertiserDashboard />}
         >
+          {/* Add messages routes for advertisers */}
+          <Route path="messages" element={<Messages />} />
+          <Route path="messages/:chatId" element={<Messages />} />
           {/* Add chat routes for advertisers */}
           <Route path="chat" element={<ChatPage />} />
           <Route path="chat/:chatId" element={<ChatPage />} />
